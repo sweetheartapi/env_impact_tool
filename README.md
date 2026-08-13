@@ -108,12 +108,3 @@ pdftoppm -jpeg -r 100 out.pdf page
   author/year only where the full bibliographic details weren't in the
   extracted text — complete them from your thesis bibliography in
   `framework/reference.py` → `REFERENCES`.
-
-## Deployment (when you want it online)
-
-1. Push this folder to a GitHub repository.
-2. On Streamlit Community Cloud, create an app pointing at `app.py`.
-   That's it — free, HTTPS, shareable link.
-3. Later, if usage grows: add persistence (database), auth, and consider
-   a proper domain. The `framework/` package would carry over unchanged
-   to any future Flask/FastAPI + JS rewrite.
