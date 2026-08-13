@@ -1,0 +1,163 @@
+# EIA — Startup Environmental Impact Assessment
+
+### Prove your environmental impact honestly, in about an hour.
+
+---
+
+## Why this exists
+
+If your startup makes any kind of environmental claim, you have probably run into the same wall.
+
+An investor, an accelerator, or a corporate customer asks: *"Can you show us your impact numbers?"* And your options look like this:
+
+- **Commission a full LCA or GHG Protocol audit.** Rigorous, credible — and typically far too slow and expensive for a company at your stage, especially when your product is still changing every few months.
+- **Put together some numbers yourself.** Fast, but you end up reporting whatever data you happen to have rather than what actually matters. That is how well-meaning founders accidentally end up greenwashing.
+- **Say nothing specific.** Safe, but it makes a genuinely good venture look like it has nothing to show.
+
+EIA is built for that gap. It is a **screening-level assessment**: it will not replace a full LCA, and it does not pretend to. What it gives you is a structured, defensible account of your environmental impact — what you claim, why you believe it, and how confident you actually are — that you can put in front of an investor without overstating anything.
+
+The framework behind it comes from academic research on environmental impact assessment in early-stage ventures. The tool simply makes it something you can sit down and fill out.
+
+---
+
+## What you get at the end
+
+A **Word report** you can send to an investor, an accelerator, or your board. It contains:
+
+- Your startup's impact classification and what that means for how you should be measured
+- Your impact pathway — the causal chain from what you do to the environmental outcome you claim
+- A short, focused set of indicators, each one justified
+- Every claim labelled with how confident you are in it, and why
+- An automated integrity check that flags the weak spots before someone else does
+
+Plus a **save file** so you can return and update the assessment as your company grows, rather than starting from scratch every time.
+
+---
+
+## Before you start
+
+You do not need an environmental consultant, and you do not need perfect data. Bring:
+
+- **About 45–60 minutes** for the first pass.
+- **Whatever operational data you already have** — utility bills, a bill of materials, cloud provider dashboards, customer numbers. Whatever you have is enough to start.
+- **Honesty about what you do not know.** This matters more than the data. The tool is designed to make gaps visible rather than paper over them, and a report that admits uncertainty is far more credible than one that does not.
+
+There are no wrong answers here. You can change anything later.
+
+---
+
+## The five steps
+
+### Step 1 · Profile & classify your startup
+
+**What you do:** Enter your startup's name, a short description, your sector, and your development stage. Then answer two plain-language questions:
+
+> *If your product works exactly as intended, but nobody changes their behaviour — does the environmental benefit still happen?*
+
+> *If you removed every environmental claim from your pitch, would the commercial case still stand on its own?*
+
+**Why it matters:** These two questions determine how your startup should be assessed at all. A company that captures carbon directly should be measured very differently from software that helps customers waste less fuel — and both differently again from a business where environmental benefit is a welcome side effect rather than the point.
+
+Most tools ignore this and apply the same checklist to everyone. This one branches: your answers here reshape every subsequent step.
+
+**What you get:** Your classification appears live in the panel on the right as you answer, along with what your assessment will actually be based on — your product, your customers' adoption, or your own operations.
+
+---
+
+### Step 2 · Map your impact pathway
+
+**What you do:** The tool loads the right template for your type — a product life cycle, an adoption chain, or two parallel tracks — and walks you through each stage. For every stage you write three things:
+
+1. **What actually happens** at this stage
+2. **The assumption** that connects it to the next stage
+3. **How strong your evidence is** for that assumption — from "just an assumption" through to "validated"
+
+**Why it matters:** This is the heart of the whole thing. Impact claims fall apart at the joints, not in the middle. An agtech company can have flawless sensor data and still be wrong about their impact, because the real question is whether farmers change what they do — and that link is usually where the evidence is thinnest.
+
+Writing the assumptions down forces the question. Rating the evidence answers it.
+
+**What you get:** Any link you rate as weak is flagged automatically. This feels uncomfortable the first time. It should — that flag is the single most useful thing in the report, because it tells you exactly where to spend your next measurement effort, and it tells an investor you know where your own soft spots are.
+
+---
+
+### Step 3 · Select your indicators
+
+**What you do:** Browse a bank of indicators across six categories — energy, emissions and waste, product-level performance, materials and circularity, governance, and systemic contribution. Tick the ones that apply, then score each on two axes:
+
+- **Relevance** — does this genuinely track something material to your impact story?
+- **Feasibility** — can you actually populate it with data you have or can get cheaply?
+
+**Why it matters:** The instinct is to measure everything you *can* measure. That instinct is exactly backwards, and it is the most common route to accidental greenwashing: an office recycling rate is easy to report and tells nobody anything about whether your product helps the planet.
+
+The scoring sorts your indicators automatically. High relevance and workable feasibility becomes your **core set**. Relevant but not yet measurable becomes **aspirational** — a roadmap for next year. Low relevance gets **excluded no matter how easy it is to measure**. That last rule is deliberate.
+
+**What you get:** A focused core set — the tool nudges you toward three to five, not thirty. You can then add units, current values, targets, data sources, and crucially, link each indicator back to the pathway stage it actually evidences. There is also a visual scoring matrix, and a quick calculator for your Scope 1 and 2 emissions if you have not done that yet.
+
+---
+
+### Step 4 · Label your uncertainty
+
+**What you do:** For each of your key indicators, write the claim as you would actually say it out loud, then label how confident you are:
+
+- 🟢 **Measured** — you have your own operational data behind this
+- 🟡 **Modelled** — it comes from industry averages, supplier data, or a simplified calculation
+- 🟣 **Projected** — it rests on assumptions about future adoption or scale
+
+Then note the assumptions behind it, and what could make the number turn out differently.
+
+**Why it matters:** All three labels are perfectly legitimate for an early-stage company. Nobody expects a seed-stage startup to have audited figures for everything. What destroys credibility is *mixing them up* — presenting a projection as if it were a measurement.
+
+Labelling them separately does something counterintuitive: it makes your strong claims stronger. When a reader can see you were scrupulous about marking the soft numbers, they trust the hard ones.
+
+**What you get:** A clean evidence base, colour-coded in the final report, where a reader can see at a glance what is solid and what is still an estimate.
+
+---
+
+### Step 5 · Review, report & export
+
+**What you do:** Set the milestone when you will revisit this — a product launch, a funding round, an annual review. Then read the automated integrity checks and download your report.
+
+**Why it matters:** The integrity checks are the tool reviewing your work before anyone else does. They flag things like:
+
+- Indicators that are easy to measure but not material — the vanity-metric trap
+- A core set that has grown too big to be credible
+- Claims that are all projections, with nothing measured behind them
+- Estimates with no documented assumptions
+- Indicators floating free of your impact pathway
+
+**What you get:** A polished Word document with a table of contents, styled tables, colour-coded confidence badges, and a methodology note with references. Also HTML, Markdown, and a JSON save file.
+
+**Keep the JSON.** It is the only format that loads back into the tool. When your next milestone arrives, upload it and pick up where you left off — the tool bumps you to the next review cycle automatically.
+
+---
+
+## What makes this different
+
+**It adapts to what kind of company you are.** Four startup types, three different pathway structures, guidance that shifts with your development stage. You are not filling in a generic form.
+
+**It is proportionate to your stage.** Three to five well-chosen indicators, not a corporate sustainability checklist. At ideation, getting the logic right matters more than having numbers. The tool tells you that instead of demanding data you cannot have.
+
+**It actively protects you from greenwashing.** Not as a warning in the footer — as scoring rules that exclude vanity metrics and automated checks that catch the specific failure patterns that get startups into trouble.
+
+**It treats uncertainty as a feature.** Most impact tools push you toward a single confident number. This one asks you to be precise about how confident you are, which is both more honest and, in front of a sophisticated investor, considerably more persuasive.
+
+**It is built to be updated.** Assessments are versioned, with a scheduled next review. This is a living document that grows with your evidence base, not a form you file once and forget.
+
+---
+
+## What this is not
+
+Worth being clear, so you can represent it accurately:
+
+- **Not a full LCA.** It does not replace ISO 14040/14044 assessment.
+- **Not comprehensive GHG accounting.** The built-in estimator is a screening tool using generic emission factors. Swap in national, year-specific factors before reporting anything externally.
+- **Not a certification.** Nobody audits your inputs. Its credibility comes from transparency about method and confidence, not from a stamp.
+- **Not a score.** There is no single number at the end, deliberately. Reducing environmental impact to one figure is precisely what makes impact claims misleading.
+
+---
+
+## Ready?
+
+Open the tool via the link (eiatool.streamlit.app), put in your startup's name, and answer the first question. You can change everything afterwards, and there is genuinely no way to get it wrong on the first pass.
+
+The only real mistake is being less honest than you could have been — and the tool is built to make that harder.
