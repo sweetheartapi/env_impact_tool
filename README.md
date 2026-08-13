@@ -1,3 +1,5 @@
+App published on **Streamlit:** https://eiatool.streamlit.app/
+
 # Startup Environmental Impact Assessment Tool (v2.1)
 
 **v2.1** adds a polished visual design: branded sidebar with a numbered
