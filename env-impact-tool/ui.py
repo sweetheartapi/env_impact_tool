@@ -107,6 +107,11 @@ def inject_css(active_step: int, statuses: dict):
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {{ color-scheme: light; }}
+/* Fluid scaling: the entire UI (Streamlit widgets included) is sized in
+   rem, so scaling the root font size with the viewport scales text and
+   components together. ~15px on small laptops, ~16.5px at 1440px,
+   ~18.5px at 1920px, capped at 21px on very large monitors. */
+html {{ font-size: clamp(15px, 11.4px + 0.34vw, 21px) !important; }}
 html, body, [data-testid="stAppViewContainer"] {{
     font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
     background: {PAPER};
@@ -115,12 +120,17 @@ html, body, [data-testid="stAppViewContainer"] {{
 #MainMenu, footer {{ visibility: hidden; }}
 header[data-testid="stHeader"] {{ background: transparent; }}
 
-.block-container {{ padding-top: 1.2rem; padding-bottom: 3rem; max-width: 1250px; }}
+.block-container {{
+    padding-top: 1.2rem; padding-bottom: 3rem;
+    /* let the content area breathe on wide monitors */
+    max-width: max(1250px, min(78vw, 1750px));
+}}
 
 /* ---------- sidebar ---------- */
 [data-testid="stSidebar"] {{
     background: #FCFCF8;
     border-right: 1px solid {BORDER};
+    min-width: 19rem !important;  /* scales with the fluid root font size */
 }}
 [data-testid="stSidebar"] .block-container {{ padding-top: 1.4rem; }}
 [data-testid="stSidebar"] hr {{ margin: .8rem 0; }}
@@ -326,9 +336,39 @@ div[data-baseweb="input"], div[data-baseweb="textarea"], div[data-baseweb="selec
     overflow: hidden;
 }}
 [data-testid="stExpander"] summary {{ font-weight: 600; }}
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] summary p {{ color: {INK} !important; }}
+[data-testid="stExpander"] summary svg {{ fill: {MUTED}; }}
 
-/* alerts softened */
+/* alerts softened; text forced dark — the tinted backgrounds stay light,
+   so dark-mode browsers must not inject light text on them */
 [data-testid="stAlert"] {{ border-radius: .9rem; }}
+[data-testid="stAlert"] p, [data-testid="stAlert"] li,
+[data-testid="stAlert"] [data-testid="stMarkdownContainer"] {{
+    color: {INK} !important;
+}}
+
+/* other theme-text leaks in dark-mode browsers (Edge, Chrome dark theme) */
+[data-testid="stMetricValue"], [data-testid="stMetricLabel"] p {{
+    color: {INK} !important;
+}}
+[data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p,
+[data-testid="stCaptionContainer"] span {{
+    color: {MUTED} !important;
+}}
+[data-testid="stMarkdownContainer"] {{ color: {INK}; }}
+[data-testid="stFileUploaderDropzone"] {{
+    background: #FFFFFF !important; color: {INK} !important;
+    border: 1px dashed {BORDER};
+}}
+[data-testid="stFileUploaderDropzone"] span,
+[data-testid="stFileUploaderDropzone"] small {{ color: {MUTED} !important; }}
+[data-testid="stFileUploader"] section button {{
+    background: #FFFFFF; color: {INK}; border: 1px solid {BORDER};
+}}
+/* keep primary button labels white — they sit on the green fill */
+.stButton > button[kind="primary"] p,
+.stDownloadButton > button[kind="primary"] p {{ color: #fff !important; }}
 </style>
 """, unsafe_allow_html=True)
 
