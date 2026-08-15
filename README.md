@@ -3,16 +3,16 @@ App published on **Streamlit:** https://eiatool.streamlit.app/
 # Startup Environmental Impact Assessment Tool (v2.1.1)
 
 ## Fixed bugs (v2.1.1)
-Unclear/black input fields — inputs, dropdowns, and labels now forced light with white backgrounds, visible borders, and dark semibold labels regardless of the browser's dark-mode setting.
-Development stage not updating dynamically — the sidebar stage card now updates in the same interaction, and the stage guidance also appears directly under the selector on step
-Diagnostic classification too subtle — each diagnostic question now has its own bordered panel with a bold question and high-contrast answer options.
-Diagnostic classification skippable — no more preselected answers; "Save & continue" stays disabled and steps 2–5 are blocked until the name and both questions are answered.
-Progress counted by navigation, not completion — a step is only marked ✓ when its content is actually filled in (e.g. at least one pathway stage described); merely visiting a step does nothing.
-Navigation looks inactive/faded — every step in the rail now shows a completion-percentage chip, full-contrast text, hover states, and a checkmark only when genuinely complete 
-Assessment progress positioning — the overall progress bar moved to the left sidebar, directly under the step list.
-Export not accessible earlier — the sidebar now has an Export section available from any step (once step 1 is minimally complete).
-Export flow too complicated — the complete Word report is a single click, both from the sidebar and on step 5; other formats are secondary.
-Technical terminology too difficult — a "Key terms, in plain language" card on step 1 explains mechanism, orientation, impact pathway, and hybrid in non-expert wording.
+- Unclear/black input fields — inputs, dropdowns, and labels now forced light with white backgrounds, visible borders, and dark semibold labels regardless of the browser's dark-mode setting.
+- Development stage not updating dynamically — the sidebar stage card now updates in the same interaction, and the stage guidance also appears directly under the selector on step
+- Diagnostic classification too subtle — each diagnostic question now has its own bordered panel with a bold question and high-contrast answer options.
+- Diagnostic classification skippable — no more preselected answers; "Save & continue" stays disabled and steps 2–5 are blocked until the name and both questions are answered.
+- Progress counted by navigation, not completion — a step is only marked ✓ when its content is actually filled in (e.g. at least one pathway stage described); merely visiting a step does nothing.
+- Navigation looks inactive/faded — every step in the rail now shows a completion-percentage chip, full-contrast text, hover states, and a checkmark only when genuinely complete 
+- Assessment progress positioning — the overall progress bar moved to the left sidebar, directly under the step list.
+- Export not accessible earlier — the sidebar now has an Export section available from any step (once step 1 is minimally complete).
+- Export flow too complicated — the complete Word report is a single click, both from the sidebar and on step 5; other formats are secondary.
+- Technical terminology too difficult — a "Key terms, in plain language" card on step 1 explains mechanism, orientation, impact pathway, and hybrid in non-expert wording.
 
 # Startup Environmental Impact Assessment Tool (v2.1)
 
