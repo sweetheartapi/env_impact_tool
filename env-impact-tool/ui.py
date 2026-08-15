@@ -58,9 +58,14 @@ _HERO_ART = """
 # CSS
 # ---------------------------------------------------------------------------
 
-def _nav_rules(active_step: int) -> str:
+def _nav_rules(active_step: int, statuses: dict) -> str:
+    """Per-row nav styling. A step is ticked only when its content is
+    actually (minimally) filled in — see step_status() — never merely
+    because the user navigated past it. Each row also gets a completion
+    chip showing the step's fill percentage."""
     rules = []
     for i in range(1, 6):
+        stt = statuses.get(i, {"pct": 0, "done": False})
         rules.append(f"""
         .st-key-navrow{i} button::before {{
             content: "{i}";
@@ -70,8 +75,16 @@ def _nav_rules(active_step: int) -> str:
             background: {CARD}; color: {MUTED};
             border: 1.5px solid {BORDER};
             flex: 0 0 auto;
+        }}
+        .st-key-navrow{i} button::after {{
+            content: "{stt['pct']}%";
+            margin-left: auto; flex: 0 0 auto;
+            font-size: .66rem; font-weight: 700;
+            border-radius: 999px; padding: .12rem .5rem;
+            background: {SAGE if stt['done'] else '#ECECE2'};
+            color: {GREEN if stt['done'] else MUTED};
         }}""")
-        if i < active_step:
+        if stt["done"]:
             rules.append(f"""
             .st-key-navrow{i} button::before {{
                 content: "\\2713";
@@ -88,11 +101,12 @@ def _nav_rules(active_step: int) -> str:
     return "\n".join(rules)
 
 
-def inject_css(active_step: int):
+def inject_css(active_step: int, statuses: dict):
     st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
+:root {{ color-scheme: light; }}
 html, body, [data-testid="stAppViewContainer"] {{
     font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
     background: {PAPER};
@@ -127,15 +141,17 @@ header[data-testid="stHeader"] {{ background: transparent; }}
 
 /* nav buttons */
 [data-testid="stSidebar"] .stButton > button {{
+    display: flex; align-items: center;
     width: 100%; justify-content: flex-start; text-align: left;
     background: transparent; border: none; border-radius: .7rem;
     padding: .5rem .6rem; color: {INK}; font-weight: 500;
-    box-shadow: none;
+    box-shadow: none; opacity: 1; cursor: pointer;
 }}
+[data-testid="stSidebar"] .stButton > button p {{ color: {INK}; }}
 [data-testid="stSidebar"] .stButton > button:hover {{
     background: {SAGE}; color: {INK}; border: none;
 }}
-{_nav_rules(active_step)}
+{_nav_rules(active_step, statuses)}
 
 /* sidebar cards */
 .eia-sidecard {{
@@ -219,6 +235,58 @@ header[data-testid="stHeader"] {{ background: transparent; }}
 .eia-tip b {{ color: {INK}; display: block; margin-bottom: .15rem; }}
 
 /* ---------- widgets ---------- */
+/* Force light, high-contrast form fields regardless of the browser/OS
+   dark-mode preference: white background, visible border, dark text. */
+div[data-baseweb="input"], div[data-baseweb="textarea"],
+div[data-baseweb="select"] > div {{
+    background: #FFFFFF !important;
+    border: 1px solid {BORDER} !important;
+    color: {INK} !important;
+}}
+[data-testid="stTextInput"] input, [data-testid="stTextArea"] textarea,
+[data-testid="stNumberInput"] input {{
+    background: #FFFFFF !important; color: {INK} !important;
+    caret-color: {INK};
+}}
+[data-testid="stTextInput"] input::placeholder,
+[data-testid="stTextArea"] textarea::placeholder {{
+    color: {MUTED} !important; opacity: 1;
+}}
+[data-testid="stNumberInput"] button {{ background: #FFFFFF; color: {INK}; }}
+[data-testid="stSelectbox"] div[data-baseweb="select"] div {{ color: {INK}; }}
+[data-testid="stSelectbox"] svg {{ fill: {MUTED}; }}
+/* dropdown menus (rendered in a portal outside the app container) */
+div[data-baseweb="popover"] [data-baseweb="menu"],
+div[data-baseweb="popover"] ul {{ background: #FFFFFF !important; }}
+div[data-baseweb="popover"] li {{ color: {INK} !important; }}
+div[data-baseweb="popover"] li:hover {{ background: {SAGE} !important; }}
+
+/* Clear, standard field labels — dark, semibold, always visible. */
+[data-testid="stWidgetLabel"] p {{
+    color: {INK} !important; font-weight: 600; font-size: .84rem;
+}}
+[data-testid="stWidgetLabel"] {{ opacity: 1 !important; }}
+
+/* Radio groups (diagnostic questions, confidence levels): distinct panel,
+   bold question, readable options. */
+[data-testid="stRadio"] {{
+    background: #FBFBF6; border: 1px solid {BORDER};
+    border-radius: .8rem; padding: .7rem .9rem .55rem .9rem;
+}}
+[data-testid="stRadio"] [data-testid="stWidgetLabel"] p {{
+    font-size: .95rem; font-weight: 700; color: {INK} !important;
+    line-height: 1.45;
+}}
+[data-testid="stRadio"] label p,
+[data-testid="stCheckbox"] label p {{
+    color: {INK} !important; font-size: .9rem;
+}}
+
+/* plain-language term lists in side cards */
+.eia-terms {{ margin: 0; padding-left: 1.05rem; }}
+.eia-terms li {{ margin: .4rem 0; color: {MUTED}; }}
+.eia-terms b, .eia-terms i {{ color: {INK}; }}
+
 .stButton > button {{
     border-radius: 999px; border: 1px solid {BORDER};
     background: {CARD}; color: {INK}; font-weight: 600;
@@ -268,6 +336,15 @@ div[data-baseweb="input"], div[data-baseweb="textarea"], div[data-baseweb="selec
 # ---------------------------------------------------------------------------
 # Components
 # ---------------------------------------------------------------------------
+
+def nav_status_css(active_step: int, statuses: dict):
+    """Re-inject the nav-rail status rules. Called at the END of the script
+    run, so checkmarks and completion chips reflect values entered during
+    this run rather than lagging one interaction behind (the base CSS from
+    inject_css keeps the rail styled until this override arrives)."""
+    st.markdown(f"<style>{_nav_rules(active_step, statuses)}</style>",
+                unsafe_allow_html=True)
+
 
 def sidebar_brand():
     st.markdown(f"""
@@ -323,10 +400,15 @@ def kv_rows(pairs) -> str:
     )
 
 
-def progress_card(pct: int):
-    card("Assessment progress",
-         f"""<div class="eia-muted" style="text-align:right;font-size:.78rem">{pct}% complete</div>
-             <div class="eia-progress-track"><div class="eia-progress-fill" style="width:{pct}%"></div></div>""")
+def sidebar_progress(pct: int):
+    """Overall assessment progress, shown directly under the workflow rail
+    so steps and progress are visible in one place."""
+    st.markdown(f"""
+    <div class="eia-sidecard">
+      <b>Assessment progress</b>
+      <div class="eia-muted" style="text-align:right;font-size:.72rem">{pct}% complete</div>
+      <div class="eia-progress-track"><div class="eia-progress-fill" style="width:{pct}%"></div></div>
+    </div>""", unsafe_allow_html=True)
 
 
 def tip_banner(text: str, title: str = "Tip for best results"):
@@ -336,29 +418,65 @@ def tip_banner(text: str, title: str = "Tip for best results"):
 
 
 # ---------------------------------------------------------------------------
-# Progress heuristic
+# Progress — based on content actually filled in, not on navigation
 # ---------------------------------------------------------------------------
 
-def progress_pct(S) -> int:
-    pts = 0.0
-    if S.get("startup_name"): pts += 8
-    if S.get("startup_desc"): pts += 6
-    if S.get("sector"): pts += 4
-    pts += 2  # classification derived once name entered
+def step_status(S) -> dict:
+    """Per-step completion, computed from the assessment content itself.
+
+    Returns {step: {"pct": int, "done": bool}}. "done" means the step's
+    minimal required content exists (e.g. at least one pathway stage
+    described), so a step never counts as completed just because it was
+    visited.
+    """
+    out = {}
+
+    # Step 1 — profile & classification
+    fields = [bool(S.get("startup_name")), bool(S.get("sector")),
+              bool(S.get("startup_desc")),
+              S.get("mechanism") is not None, S.get("orientation") is not None]
+    out[1] = {"pct": round(100 * sum(fields) / len(fields)),
+              "done": bool(S.get("startup_name")) and S.get("mechanism") is not None
+                      and S.get("orientation") is not None}
+
+    # Step 2 — pathway: at least one stage described
     stages = [s for t in S.get("pathway", {}).values() for s in t]
     if stages:
-        filled = sum(1 for s in stages if s.get("description"))
+        described = sum(1 for s in stages if s.get("description"))
         rated = sum(1 for s in stages if s.get("evidence") not in (None, "", "Not rated"))
-        pts += 15 * filled / len(stages) + 10 * rated / len(stages)
+        pct = (55 * described / len(stages) + 30 * rated / len(stages)
+               + (15 if S.get("weakest_links") else 0))
+        out[2] = {"pct": round(pct), "done": described >= 1}
+    else:
+        out[2] = {"pct": 0, "done": False}
+
+    # Step 3 — indicators: at least one selected
     sel = S.get("selected_indicators", {})
     if sel:
-        pts += 10
-        detailed = sum(1 for e in sel.values() if e.get("data_source") or e.get("unit"))
-        pts += min(10, 10 * detailed / len(sel))
+        detailed = sum(1 for e in sel.values()
+                       if e.get("data_source") or e.get("unit") or e.get("current_value"))
+        out[3] = {"pct": round(50 + 50 * detailed / len(sel)), "done": True}
+    else:
+        out[3] = {"pct": 0, "done": False}
+
+    # Step 4 — uncertainty: at least one claim actually documented.
+    # (Entries are created with defaults on render, so mere visiting of the
+    # step must not count — only typed content does.)
     unc = S.get("uncertainty", {})
-    if unc:
-        labeled = sum(1 for u in unc.values() if u.get("level"))
-        documented = sum(1 for u in unc.values() if u.get("assumptions"))
-        pts += 10 * labeled / max(1, len(unc)) + 10 * documented / max(1, len(unc))
-    if S.get("next_review_milestone"): pts += 5
-    return min(100, int(round(pts)))
+    documented = sum(1 for u in unc.values()
+                     if (u.get("assumptions") or "").strip()
+                     or (u.get("claim") or "").strip()
+                     or (u.get("conditions") or "").strip())
+    out[4] = {"pct": round(100 * documented / len(unc)) if unc else 0,
+              "done": documented >= 1}
+
+    # Step 5 — review plan: milestone explicitly chosen
+    done5 = bool(S.get("next_review_milestone"))
+    out[5] = {"pct": 100 if done5 else 0, "done": done5}
+    return out
+
+
+def overall_pct(statuses: dict) -> int:
+    weights = {1: 25, 2: 25, 3: 20, 4: 20, 5: 10}
+    total = sum(statuses[i]["pct"] * w for i, w in weights.items()) / sum(weights.values())
+    return min(100, int(round(total)))

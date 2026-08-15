@@ -32,8 +32,11 @@ DEFAULTS = {
     "startup_desc": "",
     "sector": "",
     "stage": "Ideation",
-    "mechanism": "Direct",
-    "orientation": "Primary",
+    # None until the user answers the diagnostic questions — the
+    # classification is required input, so it must never be silently
+    # defaulted and skipped over.
+    "mechanism": None,
+    "orientation": None,
     "is_hybrid": False,
     "secondary_mechanism": None,
     "pathway": {},
@@ -62,8 +65,34 @@ def goto(step):
     st.rerun()
 
 
+def classified() -> bool:
+    """Both diagnostic questions answered — required before steps 2-5."""
+    return (S["mechanism"] in ("Direct", "Enabling")
+            and S["orientation"] in ("Primary", "Secondary"))
+
+
 def current_classification():
     return ref.CLASSIFICATION_MATRIX[(S["mechanism"], S["orientation"])]
+
+
+def require_profile():
+    """Steps 2-5 depend on the name and the diagnostic classification.
+    Block the step (navigation itself stays possible) until step 1 has the
+    minimal required input."""
+    missing = []
+    if not S["startup_name"]:
+        missing.append("the startup name")
+    if not classified():
+        missing.append("the two diagnostic questions")
+    if missing:
+        st.warning("**Complete step 1 first** — " + " and ".join(missing) +
+                   " still missing. The classification determines which pathway "
+                   "template, indicators, and guidance apply to your startup, so "
+                   "the assessment cannot continue without it.", icon="🧭")
+        if st.button("← Go to step 1 (Profile & classify)", type="primary"):
+            goto(1)
+        finalize_chrome()
+        st.stop()
 
 
 def pathway_stage_names():
@@ -81,7 +110,8 @@ def state_dict():
 
 
 step = S["step"]
-ui.inject_css(active_step=step)
+step_statuses = ui.step_status(S)
+ui.inject_css(active_step=step, statuses=step_statuses)
 
 # ---------------------------------------------------------------------------
 # Sidebar — brand, workflow rail, stage card, save & resume
@@ -97,14 +127,21 @@ with st.sidebar:
             if st.button(name, key=f"navbtn{s_num}", use_container_width=True):
                 goto(s_num)
 
+    # Progress and export are filled in at the END of the script run (see
+    # finalize_chrome) so they reflect values entered during this run instead
+    # of lagging one interaction behind.
+    prog_slot = st.container()
+
     g = ref.STAGE_GUIDANCE[S["stage"]]
     ui.sidebar_stage_card(S["stage"], g["priority_modules"], g["note"])
+
+    export_slot = st.container()
 
     st.markdown(
         '<div class="eia-sidecard"><b>Save & resume</b>'
         '<div style="margin-top:.35rem">Progress lives in this browser session. '
-        'Export the JSON on step 5 to save; re-import it here to resume or start '
-        'a new review cycle.</div></div>',
+        'Download the assessment file (JSON) above at any time; re-import it '
+        'here to resume or start a new review cycle.</div></div>',
         unsafe_allow_html=True,
     )
     with st.expander("⬆️ Import assessment (JSON)"):
@@ -116,6 +153,9 @@ with st.sidebar:
                 for k, v in loaded.items():
                     if k in DEFAULTS and v is not None:
                         S[k] = v
+                # drop the stage widget's mirror state so the selectbox
+                # re-initializes from the imported value
+                S.pop("stage_widget", None)
                 S["_imported"] = True
                 st.success(f"Loaded — now on review cycle v{S['assessment_version']}.")
                 st.rerun()
@@ -130,6 +170,39 @@ with st.sidebar:
 
     st.markdown(f'<div class="eia-footer">v2.1 · Review cycle v{S["assessment_version"]}</div>',
                 unsafe_allow_html=True)
+
+
+def finalize_chrome():
+    """Fill the deferred sidebar slots (progress, export) and refresh the
+    nav-rail completion styling using the state as it stands AFTER this
+    run's widgets have written their values."""
+    statuses = ui.step_status(S)
+    with prog_slot:
+        ui.sidebar_progress(ui.overall_pct(statuses))
+    with export_slot:
+        st.markdown('<div class="eia-eyebrow">Export</div>', unsafe_allow_html=True)
+        if S["startup_name"] and classified():
+            name_slug = S["startup_name"].replace(" ", "_")
+            data = rpt.assemble(state_dict())
+            try:
+                st.download_button(
+                    "📄 Word report (.docx)", data=rpt.to_docx(data),
+                    file_name=f"{name_slug}_impact_report.docx",
+                    mime="application/vnd.openxmlformats-officedocument"
+                         ".wordprocessingml.document",
+                    use_container_width=True, type="primary", key="side_docx")
+            except Exception as exc:
+                st.caption(f"Word export unavailable: {exc}")
+            st.download_button(
+                "💾 Assessment file (.json)", data=rpt.export_state(state_dict()),
+                file_name=f"{name_slug}_assessment_v{S['assessment_version']}.json",
+                mime="application/json", use_container_width=True, key="side_json")
+            st.caption("The Word report is the complete, shareable deliverable; "
+                       "keep the JSON to resume this assessment later.")
+        else:
+            st.caption("Complete step 1 (name + the two diagnostic questions) "
+                       "to unlock export.")
+    ui.nav_status_css(step, statuses)
 
 # ---------------------------------------------------------------------------
 # Top bar + stage priority banner
@@ -165,65 +238,103 @@ if step == 1:
                     "Sector / domain", value=S["sector"],
                     placeholder="e.g., AgTech, packaging, SaaS")
             with c2:
+                def _sync_stage():
+                    S["stage"] = S["stage_widget"]
+
                 S["stage"] = st.selectbox(
                     "Development stage", ref.STAGES,
                     index=ref.STAGES.index(S["stage"]),
+                    key="stage_widget", on_change=_sync_stage,
                     help="The framework adapts its guidance: module depth "
                          "varies by development stage.")
+                _g = ref.STAGE_GUIDANCE[S["stage"]]
+                st.caption(f"**At this stage, modules "
+                           f"{' & '.join(str(m) for m in _g['priority_modules'])} "
+                           f"are the priority.** {_g['note']}")
             S["startup_desc"] = st.text_area(
                 "Short description", value=S["startup_desc"],
                 placeholder="What does your startup do, and for whom? (1–3 sentences)")
 
         with st.container(border=True):
             st.markdown("#### Diagnostic classification")
-            st.caption("Answer these to classify your impact mechanism — "
-                       "no jargon required.")
+            st.caption("**Both questions are required** — your answers classify "
+                       "your impact mechanism and drive the whole assessment. "
+                       "No jargon required.")
 
             mech_opts = list(ref.DIAGNOSTIC_MECHANISM["options"].keys())
-            mech_idx = 0 if S["mechanism"] == "Direct" else 1
+            mech_idx = {"Direct": 0, "Enabling": 1}.get(S["mechanism"])
             mech_answer = st.radio(ref.DIAGNOSTIC_MECHANISM["question"],
                                    mech_opts, index=mech_idx)
-            derived_mechanism = ref.DIAGNOSTIC_MECHANISM["options"][mech_answer]
+            if mech_answer is not None:
+                S["mechanism"] = ref.DIAGNOSTIC_MECHANISM["options"][mech_answer]
 
-            S["is_hybrid"] = st.checkbox(
-                "Hybrid: a meaningful share of the impact also arises through the "
-                "*other* mechanism",
-                value=S["is_hybrid"],
-                help="e.g. an enabling startup with a measurable direct footprint, "
-                     "or hardware with both direct and enabling effects. The "
-                     "secondary track gets lighter-touch screening.")
-            S["mechanism"] = derived_mechanism
-            S["secondary_mechanism"] = (
-                ("Enabling" if derived_mechanism == "Direct" else "Direct")
-                if S["is_hybrid"] else None)
-            if S["is_hybrid"]:
-                st.caption(f"Primary track: **{S['mechanism']}** · Secondary track "
-                           f"(light-touch): **{S['secondary_mechanism']}**")
+            if S["mechanism"] is not None:
+                S["is_hybrid"] = st.checkbox(
+                    "Hybrid: a meaningful share of the impact also arises through the "
+                    "*other* mechanism",
+                    value=S["is_hybrid"],
+                    help="e.g. an enabling startup with a measurable direct footprint, "
+                         "or hardware with both direct and enabling effects. The "
+                         "secondary track gets lighter-touch screening.")
+                S["secondary_mechanism"] = (
+                    ("Enabling" if S["mechanism"] == "Direct" else "Direct")
+                    if S["is_hybrid"] else None)
+                if S["is_hybrid"]:
+                    st.caption(f"Primary track: **{S['mechanism']}** · Secondary track "
+                               f"(light-touch): **{S['secondary_mechanism']}**")
 
             ori_opts = list(ref.DIAGNOSTIC_ORIENTATION["options"].keys())
-            ori_idx = 0 if S["orientation"] == "Primary" else 1
+            ori_idx = {"Primary": 0, "Secondary": 1}.get(S["orientation"])
             ori_answer = st.radio(ref.DIAGNOSTIC_ORIENTATION["question"],
                                   ori_opts, index=ori_idx)
-            S["orientation"] = ref.DIAGNOSTIC_ORIENTATION["options"][ori_answer]
+            if ori_answer is not None:
+                S["orientation"] = ref.DIAGNOSTIC_ORIENTATION["options"][ori_answer]
 
+        ready = bool(S["startup_name"]) and classified()
         _, nxt = st.columns([2, 1])
         with nxt:
             if st.button("Save & continue →", type="primary",
-                         use_container_width=True, disabled=not S["startup_name"]):
+                         use_container_width=True, disabled=not ready):
                 goto(2)
-        if not S["startup_name"]:
-            st.caption("Enter a startup name to continue.")
+        if not ready:
+            missing = []
+            if not S["startup_name"]:
+                missing.append("enter a startup name")
+            if not classified():
+                missing.append("answer both diagnostic questions")
+            st.caption("To continue: " + " and ".join(missing) + ".")
 
     with right:
-        cls = current_classification()
-        template_name = ref.PATHWAY_TEMPLATES[cls["pathway_template"]]["name"].split(" (")[0]
-        ui.card("Your classification", ui.kv_rows([
-            ("Mechanism", S["mechanism"] + (" + hybrid" if S["is_hybrid"] else "")),
-            ("Orientation", S["orientation"]),
-            ("Pathway structure", template_name),
-        ]) + f'<div style="margin-top:.6rem;color:{ui.MUTED}">{cls["label"]}</div>',
-            icon="🧭")
-        ui.progress_card(ui.progress_pct(S))
+        if classified():
+            cls = current_classification()
+            template_name = ref.PATHWAY_TEMPLATES[cls["pathway_template"]]["name"].split(" (")[0]
+            ui.card("Your classification", ui.kv_rows([
+                ("Mechanism", S["mechanism"] + (" + hybrid" if S["is_hybrid"] else "")),
+                ("Orientation", S["orientation"]),
+                ("Pathway structure", template_name),
+            ]) + f'<div style="margin-top:.6rem;color:{ui.MUTED}">{cls["label"]}</div>',
+                icon="🧭")
+        else:
+            ui.card("Your classification",
+                    "Answer the two diagnostic questions on the left — your "
+                    "startup type and the tailored assessment pathway will "
+                    "appear here immediately.", icon="🧭", quiet=True)
+        ui.card("Key terms, in plain language", """
+            <ul class="eia-terms">
+              <li><b>Impact mechanism</b> — how the environmental benefit comes
+                  about. <i>Direct</i>: your product or service delivers it by
+                  itself. <i>Enabling</i>: it only happens when customers adopt
+                  your solution and change what they do.</li>
+              <li><b>Value orientation</b> — <i>Primary</i>: environmental
+                  improvement is the point of your offering. <i>Secondary</i>:
+                  your offering is commercial, and the environmental effect is a
+                  by-product.</li>
+              <li><b>Impact pathway</b> — the step-by-step cause-and-effect
+                  chain from what you do to the environmental impact you claim
+                  (mapped in step 2).</li>
+              <li><b>Hybrid</b> — a meaningful share of the impact arises through
+                  both mechanisms; the secondary one gets a lighter check.</li>
+            </ul>""", icon="📖", quiet=True)
         ui.card("Why this matters",
                 "A clear classification and pathway now makes your indicators, "
                 "data, and claims more credible and defensible later.",
@@ -237,6 +348,7 @@ if step == 1:
 # ===========================================================================
 
 elif step == 2:
+    require_profile()
     cls = current_classification()
     template = ref.PATHWAY_TEMPLATES[cls["pathway_template"]]
 
@@ -325,7 +437,6 @@ elif step == 2:
             ("Stages described", f"{described} / {len(stages_flat)}"),
             ("Weak links flagged", str(weak_n)),
         ]), icon="🗺️")
-        ui.progress_card(ui.progress_pct(S))
         ui.card("Why this matters",
                 "Every stage carries an assumption. Naming the weak ones now is "
                 "not a weakness — it tells you exactly where measurement is "
@@ -339,6 +450,7 @@ elif step == 2:
 # ===========================================================================
 
 elif step == 3:
+    require_profile()
     ui.hero(3, "Select your indicators",
             "Score each candidate on relevance (is it material to your pathway?) "
             "and feasibility (can you populate it with data you hold?). Aim for a "
@@ -516,7 +628,6 @@ elif step == 3:
             ("Aspirational", str(len(buckets[scoring.BUCKET_ASPIRATIONAL]))),
             ("Excluded", str(len(buckets[scoring.BUCKET_EXCLUDED]))),
         ]), icon="🎯")
-        ui.progress_card(ui.progress_pct(S))
         ui.card("Why this matters",
                 "Metrics that are easy to report but not material are how "
                 "greenwashing happens by accident. The scoring excludes them "
@@ -530,6 +641,7 @@ elif step == 3:
 # ===========================================================================
 
 elif step == 4:
+    require_profile()
     ui.hero(4, "Label your uncertainty",
             "Every impact claim gets an evidential confidence level — measured, "
             "modelled, or projected — plus the assumptions behind it. All three "
@@ -595,7 +707,6 @@ elif step == 4:
             ("🟡 Modelled", str(counts["Modelled"])),
             ("🟣 Projected", str(counts["Projected"])),
         ]), icon="⚖️")
-        ui.progress_card(ui.progress_pct(S))
         ui.card("Why this matters",
                 "Only measured claims count as evidence. Projected claims belong "
                 "in the narrative — labelling the difference is what makes the "
@@ -609,6 +720,7 @@ elif step == 4:
 # ===========================================================================
 
 elif step == 5:
+    require_profile()
     ui.hero(5, "Review, report & export",
             "Set the next review milestone, run the integrity checks, and export "
             "your report. This assessment is designed for updating, not for "
@@ -623,8 +735,9 @@ elif step == 5:
             milestone = c1.selectbox(
                 "Next review milestone", ref.REVIEW_MILESTONES,
                 index=ref.REVIEW_MILESTONES.index(S["next_review_milestone"])
-                if S["next_review_milestone"] in ref.REVIEW_MILESTONES else 0)
-            S["next_review_milestone"] = milestone
+                if S["next_review_milestone"] in ref.REVIEW_MILESTONES else None,
+                placeholder="Select a milestone…")
+            S["next_review_milestone"] = milestone or ""
             S["review_notes"] = c2.text_input("Notes for the next review (optional)",
                                               value=S["review_notes"])
 
@@ -652,9 +765,10 @@ elif step == 5:
         st.markdown("#### Export")
         name_slug = (S["startup_name"] or "assessment").replace(" ", "_")
 
-        st.markdown("**Recommended: Word document** — headings, a table of "
-                    "contents, styled indicator tables, and colour-coded "
-                    "confidence badges.")
+        st.markdown("One click, complete report: the Word document below "
+                    "contains everything — headings, a table of contents, "
+                    "styled indicator tables, and colour-coded confidence "
+                    "badges. It is also available from the sidebar at any time.")
         if report_docx is not None:
             st.download_button("📄 Download Word report (.docx)", data=report_docx,
                                file_name=f"{name_slug}_impact_report.docx",
@@ -694,7 +808,6 @@ elif step == 5:
             ("Warnings", str(warn_n)),
             ("Next review", S["next_review_milestone"] or "—"),
         ]), icon="📋")
-        ui.progress_card(ui.progress_pct(S))
         ui.card("Review cycles",
                 f"You are on review cycle <b>v{S['assessment_version']}</b>. "
                 "Re-importing the exported JSON later starts cycle "
@@ -704,3 +817,5 @@ elif step == 5:
     ui.tip_banner("Warnings are guidance, not blockers — but each one you "
                   "resolve makes the report harder to challenge.",
                   title="Before you export")
+
+finalize_chrome()
