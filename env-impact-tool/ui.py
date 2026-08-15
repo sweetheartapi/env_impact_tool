@@ -34,22 +34,108 @@ STEP_META = {
     5: ("Report & export", "Review and export"),
 }
 
+# Hero scene (vector recreation of the approved artwork): filled-blade wind
+# turbines on soft hills, a growth curve with data nodes sprouting leaves,
+# rising as an arrow into the sun.
 _HERO_ART = """
-<svg viewBox="0 0 320 150" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <circle cx="230" cy="70" r="52" fill="#F2EBD9"/>
-  <path d="M0 150 C 70 96, 150 128, 200 112 C 258 94, 292 120, 320 108 L 320 150 Z" fill="#DCE9DD"/>
-  <path d="M0 150 C 90 120, 190 140, 320 124 L 320 150 Z" fill="#CBDFD2"/>
-  <g stroke="#1E6A47" stroke-width="2.4" fill="none" stroke-linecap="round">
-    <path d="M56 118 q 2 -22 0 -34"/>
-    <path d="M56 96 q -12 -6 -14 -18 q 12 2 14 12"/>
-    <path d="M56 88 q 12 -8 13 -20 q -12 2 -13 14"/>
-    <path d="M262 116 q 2 -16 0 -24"/>
-    <path d="M262 102 q -9 -4 -10 -13 q 9 1 10 9"/>
+<svg viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <style>
+    .eia-rotor { animation: eia-spin 12s linear infinite; transform-origin: 0 0; }
+    .eia-rotor.slow { animation-duration: 18s; animation-delay: -5s; }
+    @keyframes eia-spin { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .eia-rotor { animation: none; } }
+  </style>
+  <defs>
+    <linearGradient id="eiaFadeX" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#000"/>
+      <stop offset="0.12" stop-color="#fff"/>
+      <stop offset="0.9" stop-color="#fff"/>
+      <stop offset="1" stop-color="#000"/>
+    </linearGradient>
+    <linearGradient id="eiaFadeY" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff"/>
+      <stop offset="0.8" stop-color="#fff"/>
+      <stop offset="1" stop-color="#000"/>
+    </linearGradient>
+    <mask id="eiaMaskX"><rect width="320" height="160" fill="url(#eiaFadeX)"/></mask>
+    <mask id="eiaMaskY"><rect width="320" height="160" fill="url(#eiaFadeY)"/></mask>
+  </defs>
+  <circle cx="256" cy="58" r="38" fill="#F2E7CF"/>
+  <!-- ground scene, double-masked so the grass dissolves into the page
+       background at the left, right and bottom edges -->
+  <g mask="url(#eiaMaskX)"><g mask="url(#eiaMaskY)">
+  <path d="M0 132 C 60 116, 130 134, 200 122 C 255 112, 295 126, 320 118 L 320 160 L 0 160 Z" fill="#DFEAE0"/>
+  <path d="M0 146 C 90 132, 210 150, 320 136 L 320 160 L 0 160 Z" fill="#CFE0D2"/>
+  <!-- large turbine -->
+  <polygon points="73,148 75.4,88 78.6,88 81,148" fill="#2F5D40"/>
+  <g transform="translate(77,84)">
+    <g class="eia-rotor" fill="#2F5D40">
+      <path transform="rotate(15)" d="M0 0 C -3.2 -10, -3.2 -26, 0 -34 C 3.2 -26, 3.2 -10, 0 0 Z"/>
+      <path transform="rotate(135)" d="M0 0 C -3.2 -10, -3.2 -26, 0 -34 C 3.2 -26, 3.2 -10, 0 0 Z"/>
+      <path transform="rotate(255)" d="M0 0 C -3.2 -10, -3.2 -26, 0 -34 C 3.2 -26, 3.2 -10, 0 0 Z"/>
+    </g>
   </g>
-  <g stroke="#8FB8A1" stroke-width="2" fill="none" stroke-linecap="round">
-    <path d="M300 40 q 8 -4 14 -1 M303 47 q 9 -3 14 1" />
-    <path d="M22 34 q 7 -4 13 -1 M25 41 q 8 -3 13 1" />
+  <circle cx="77" cy="84" r="4.5" fill="#2F5D40"/>
+  <circle cx="77" cy="84" r="1.8" fill="#A7C4AF"/>
+  <!-- small turbine behind the hill -->
+  <polygon points="124,146 125.4,106 126.6,106 128,146" fill="#8FB8A1"/>
+  <g transform="translate(126,104)">
+    <g class="eia-rotor slow" fill="#8FB8A1">
+      <path transform="rotate(60)" d="M0 0 C -2.2 -7, -2.2 -18, 0 -23 C 2.2 -18, 2.2 -7, 0 0 Z"/>
+      <path transform="rotate(180)" d="M0 0 C -2.2 -7, -2.2 -18, 0 -23 C 2.2 -18, 2.2 -7, 0 0 Z"/>
+      <path transform="rotate(300)" d="M0 0 C -2.2 -7, -2.2 -18, 0 -23 C 2.2 -18, 2.2 -7, 0 0 Z"/>
+    </g>
   </g>
+  <circle cx="126" cy="104" r="3" fill="#8FB8A1"/>
+  <!-- sprout -->
+  <path d="M50 148 C 50 142, 50 138, 50 134" stroke="#2F5D40" stroke-width="2.5"
+        fill="none" stroke-linecap="round"/>
+  <path d="M50 138 C 47 131, 41 126, 34 127 C 35 133, 42 138, 50 138 Z" fill="#2F5D40"/>
+  <path d="M50 132 C 52 126, 57 122, 63 123 C 62 128, 56 132, 50 132 Z" fill="#2F5D40"/>
+  </g></g>
+  <!-- growth curve with nodes, leaves and arrowhead -->
+  <path d="M138 146 C 172 140, 205 124, 243 96" stroke="#2F5D40"
+        stroke-width="3.6" fill="none" stroke-linecap="round"/>
+  <polygon points="252,89 244.2,103.3 243.7,95.4 236.2,93.1" fill="#2F5D40"/>
+  <circle cx="170" cy="135" r="4.5" fill="#7FA98C"/>
+  <circle cx="208" cy="122" r="4.5" fill="#7FA98C"/>
+  <path d="M190 128 C 187 119, 179 112, 169 112 C 170 121, 178 128, 190 128 Z" fill="#2F5D40"/>
+  <path d="M233 100 C 230 92, 223 86, 214 86 C 215 94, 222 100, 233 100 Z" fill="#2F5D40"/>
+  <!-- birds -->
+  <g stroke="#8FB8A1" stroke-width="2.2" fill="none" stroke-linecap="round">
+    <path d="M34 36 q 9 -6 18 -2 M38 46 q 8 -5 16 -1"/>
+    <path d="M290 34 q 9 -6 18 -2 M294 44 q 8 -5 16 -1"/>
+  </g>
+</svg>
+"""
+
+# App-icon tile distilled from the hero scene: rounded square with soft
+# hills and sun, a node-studded growth arrow and a sage leaf. Used for the
+# sidebar brand and top bar.
+_LOGO_MARK = """
+<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <defs><clipPath id="eiaTile"><rect width="48" height="48" rx="12"/></clipPath></defs>
+  <g clip-path="url(#eiaTile)">
+    <rect width="48" height="48" fill="#EDF2EA"/>
+    <circle cx="21" cy="16" r="10" fill="#F2E0BC"/>
+    <path d="M0 34 C 10 30, 20 34, 30 31 C 38 29, 44 32, 48 30 L 48 48 L 0 48 Z" fill="#DCE7DC"/>
+    <path d="M0 41 C 12 38, 30 42, 48 38 L 48 48 L 0 48 Z" fill="#CBDCCE"/>
+  </g>
+  <path d="M9 41 C 17 39, 25 33, 34 22" stroke="#2F5D40" stroke-width="3"
+        fill="none" stroke-linecap="round"/>
+  <polygon points="39,16 36.4,25.4 34.9,21 30.2,20.4" fill="#2F5D40"/>
+  <circle cx="9" cy="41" r="2.7" fill="#2F5D40"/>
+  <circle cx="19" cy="37.5" r="2.7" fill="#2F5D40"/>
+  <circle cx="28" cy="30" r="2.7" fill="#2F5D40"/>
+  <path d="M16 36 C 14 30, 9 26, 3.5 27 C 4.5 32, 9.5 36, 16 36 Z" fill="#7FA98C"/>
+</svg>
+"""
+
+# Small floating leaves that accompany the EIA wordmark.
+_WORD_LEAVES = """
+<svg viewBox="0 0 24 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <path d="M12 10 C 13 4, 18 0.5, 23 1 C 22.5 6, 18 10, 12 10 Z" fill="#8FB8A1"/>
+  <path d="M10 18 C 11 13, 15 9.5, 20 10 C 19.5 14.5, 15 18, 10 18 Z" fill="#B9D2C2"/>
 </svg>
 """
 
@@ -135,14 +221,23 @@ header[data-testid="stHeader"] {{ background: transparent; }}
 [data-testid="stSidebar"] .block-container {{ padding-top: 1.4rem; }}
 [data-testid="stSidebar"] hr {{ margin: .8rem 0; }}
 
-.eia-brand {{ display: flex; gap: .65rem; align-items: center; margin-bottom: 1.4rem; }}
+.eia-brand {{ display: flex; gap: .8rem; align-items: center; margin-bottom: 1.5rem; }}
 .eia-brand .logo {{
-    width: 2.6rem; height: 2.6rem; border-radius: .8rem;
-    background: {SAGE}; display: flex; align-items: center; justify-content: center;
-    font-size: 1.3rem;
+    width: 3.9rem; height: 3.9rem; flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: center;
 }}
-.eia-brand .word {{ font-size: 1.45rem; font-weight: 800; color: {GREEN}; line-height: 1; }}
-.eia-brand .sub {{ font-size: .68rem; color: {MUTED}; line-height: 1.25; margin-top: .2rem; }}
+.eia-brand .logo svg {{ width: 100%; height: 100%; }}
+.eia-topbar .hello .dot svg {{ width: 100%; height: 100%; }}
+.eia-brand .word {{
+    display: flex; align-items: flex-start; gap: .1rem;
+    font-size: 2.15rem; font-weight: 800; letter-spacing: -.01em;
+    color: #2F5D40; line-height: .95;
+}}
+.eia-brand .word svg {{ width: 1.05rem; height: auto; margin-top: .1rem; flex: 0 0 auto; }}
+.eia-brand .sub {{
+    font-size: .8rem; font-weight: 600; color: #3A4A40;
+    line-height: 1.3; margin-top: .3rem;
+}}
 
 .eia-eyebrow {{
     font-size: .68rem; font-weight: 700; letter-spacing: .09em;
@@ -184,7 +279,7 @@ header[data-testid="stHeader"] {{ background: transparent; }}
 }}
 .eia-topbar .hello {{ display: flex; gap: .7rem; align-items: center; font-weight: 500; }}
 .eia-topbar .hello .dot {{
-    width: 2.1rem; height: 2.1rem; border-radius: .7rem; background: {SAGE};
+    width: 2.2rem; height: 2.2rem;
     display: flex; align-items: center; justify-content: center;
 }}
 .eia-topbar .cycle {{
@@ -193,7 +288,14 @@ header[data-testid="stHeader"] {{ background: transparent; }}
 }}
 
 /* ---------- hero ---------- */
-.eia-hero {{ position: relative; margin-bottom: 1.2rem; }}
+/* Text and artwork sit side by side in a flex row, so they can never
+   overlap; the artwork width is fluid (rem + vw) and grows to fill the
+   space on large displays. */
+.eia-hero {{
+    display: flex; align-items: center; gap: 2.5rem;
+    margin-bottom: 1.2rem;
+}}
+.eia-hero .txt {{ flex: 1 1 auto; min-width: 0; }}
 .eia-hero .step {{
     font-size: .7rem; font-weight: 700; letter-spacing: .1em;
     text-transform: uppercase; color: {GREEN}; margin-bottom: .3rem;
@@ -204,10 +306,13 @@ header[data-testid="stHeader"] {{ background: transparent; }}
 }}
 .eia-hero p {{ color: {MUTED}; font-size: .95rem; max-width: 46rem; margin: 0; }}
 .eia-hero .art {{
-    position: absolute; right: 0; top: -1.4rem; width: 300px; opacity: .95;
-    pointer-events: none;
+    flex: 0 1 auto;
+    width: clamp(17rem, 28vw, 31rem);
+    margin: -1.1rem 0 -.6rem;
+    opacity: .95; pointer-events: none;
 }}
-@media (max-width: 1100px) {{ .eia-hero .art {{ display:none; }} }}
+.eia-hero .art svg {{ width: 100%; height: auto; display: block; }}
+@media (max-width: 980px) {{ .eia-hero .art {{ display: none; }} }}
 
 /* ---------- cards / containers ---------- */
 [data-testid="stVerticalBlockBorderWrapper"] {{
@@ -263,13 +368,58 @@ div[data-baseweb="select"] > div {{
     color: {MUTED} !important; opacity: 1;
 }}
 [data-testid="stNumberInput"] button {{ background: #FFFFFF; color: {INK}; }}
-[data-testid="stSelectbox"] div[data-baseweb="select"] div {{ color: {INK}; }}
-[data-testid="stSelectbox"] svg {{ fill: {MUTED}; }}
-/* dropdown menus (rendered in a portal outside the app container) */
-div[data-baseweb="popover"] [data-baseweb="menu"],
-div[data-baseweb="popover"] ul {{ background: #FFFFFF !important; }}
-div[data-baseweb="popover"] li {{ color: {INK} !important; }}
-div[data-baseweb="popover"] li:hover {{ background: {SAGE} !important; }}
+/* selectbox control (react-aria ComboBox in Streamlit >= 1.5x): the dark
+   background sits on the group wrapper and the inner input */
+[data-testid="stSelectbox"] .react-aria-ComboBox div[role="group"] {{
+    background: #FFFFFF !important; border-color: {BORDER};
+}}
+[data-testid="stSelectbox"] .react-aria-ComboBox input {{
+    background: transparent !important; color: {INK} !important;
+    caret-color: {INK};
+}}
+[data-testid="stSelectbox"] .react-aria-ComboBox button {{
+    background: transparent !important; color: {MUTED} !important;
+}}
+[data-testid="stTooltipIcon"] button {{
+    background: transparent !important; color: {MUTED} !important;
+}}
+
+/* radio marks: white ring when unchecked, brand-green dot when checked
+   (the dark theme otherwise renders them as solid black shapes) */
+[data-testid="stRadioOption"] > div > div > div:first-child {{
+    background-color: #FFFFFF !important;
+    border: 2px solid #A2AFA6 !important;
+}}
+[data-testid="stRadioOption"] > div > div > div:first-child > div {{
+    background-color: transparent !important;
+}}
+[data-testid="stRadioOption"]:has(input:checked) > div > div > div:first-child {{
+    border-color: {GREEN} !important;
+}}
+[data-testid="stRadioOption"]:has(input:checked) > div > div > div:first-child > div {{
+    background-color: {GREEN} !important;
+}}
+
+/* checkbox box: white when unchecked, brand green when checked */
+[data-testid="stCheckbox"] label > div:first-of-type {{
+    background-color: #FFFFFF !important;
+    border: 2px solid #A2AFA6 !important;
+    border-radius: .3rem;
+}}
+[data-testid="stCheckbox"] label:has(input:checked) > div:first-of-type {{
+    background-color: {GREEN} !important; border-color: {GREEN} !important;
+    color: #FFFFFF !important;
+}}
+
+/* dropdown lists (rendered in a portal outside the app container) */
+div[role="listbox"] {{ background: #FFFFFF !important; border-color: {BORDER}; }}
+div[role="listbox"] [role="option"] {{
+    color: {INK} !important; background: transparent;
+}}
+div[role="listbox"] [role="option"]:hover,
+div[role="listbox"] [role="option"][aria-selected="true"] {{
+    background: {SAGE} !important;
+}}
 
 /* Clear, standard field labels — dark, semibold, always visible. */
 [data-testid="stWidgetLabel"] p {{
@@ -389,9 +539,9 @@ def nav_status_css(active_step: int, statuses: dict):
 def sidebar_brand():
     st.markdown(f"""
     <div class="eia-brand">
-      <div class="logo">🌿</div>
+      <div class="logo">{_LOGO_MARK}</div>
       <div>
-        <div class="word">EIA</div>
+        <div class="word">EIA{_WORD_LEAVES}</div>
         <div class="sub">Startup Environmental<br>Impact Assessment</div>
       </div>
     </div>""", unsafe_allow_html=True)
@@ -410,7 +560,7 @@ def sidebar_stage_card(stage: str, priority_modules, note: str):
 def topbar(version: int, greeting: str):
     st.markdown(f"""
     <div class="eia-topbar">
-      <div class="hello"><div class="dot">🌿</div>{greeting}</div>
+      <div class="hello"><div class="dot">{_LOGO_MARK}</div>{greeting}</div>
       <div class="cycle">📅 Review cycle v{version}</div>
     </div>""", unsafe_allow_html=True)
 
@@ -419,10 +569,12 @@ def hero(step: int, title: str, subtitle: str, art: bool = True):
     art_html = f'<div class="art">{_HERO_ART}</div>' if art else ""
     st.markdown(f"""
     <div class="eia-hero">
+      <div class="txt">
+        <div class="step">Step {step} of 5</div>
+        <h1>{title}</h1>
+        <p>{subtitle}</p>
+      </div>
       {art_html}
-      <div class="step">Step {step} of 5</div>
-      <h1>{title}</h1>
-      <p>{subtitle}</p>
     </div>""", unsafe_allow_html=True)
 
 
