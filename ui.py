@@ -569,6 +569,46 @@ div[data-baseweb="input"], div[data-baseweb="textarea"], div[data-baseweb="selec
 [data-testid="stFileUploader"] section button {{
     background: #FFFFFF; color: {INK}; border: 1px solid {BORDER};
 }}
+/* Hand-off overlay. Painted by the browser as soon as the button is
+   pressed, so the round trip to the server happens behind it. */
+.eia-launch {{
+    position: fixed; inset: 0; z-index: 99999;
+    background: {PAPER};
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 1.1rem;
+    animation: eia-launch-in .2s ease both;
+}}
+@keyframes eia-launch-in {{ from {{ opacity: 0 }} to {{ opacity: 1 }} }}
+.eia-launch .mk {{
+    width: 5.4rem; line-height: 0;
+    animation: eia-launch-rise 2.4s ease-in-out infinite;
+}}
+.eia-launch .mk svg {{ width: 100%; height: auto; display: block; }}
+@keyframes eia-launch-rise {{
+    0%, 100% {{ transform: translateY(0); }}
+    50%      {{ transform: translateY(-7px); }}
+}}
+.eia-launch .msg {{
+    font-size: 1rem; font-weight: 600; color: {GREEN_DARK};
+}}
+.eia-launch .bar {{
+    width: 13rem; height: 4px; border-radius: 999px;
+    background: #E2EADF; overflow: hidden;
+}}
+.eia-launch .bar i {{
+    display: block; width: 40%; height: 100%; border-radius: 999px;
+    background: {GREEN};
+    animation: eia-launch-slide 1.15s ease-in-out infinite;
+}}
+@keyframes eia-launch-slide {{
+    0%   {{ transform: translateX(-105%); }}
+    100% {{ transform: translateX(255%); }}
+}}
+@media (prefers-reduced-motion: reduce) {{
+    .eia-launch .mk, .eia-launch .bar i {{ animation: none; }}
+    .eia-launch .bar i {{ width: 100%; }}
+}}
+
 /* keep primary button labels white, they sit on the green fill */
 .stButton > button[kind="primary"] p,
 .stDownloadButton > button[kind="primary"] p {{ color: #fff !important; }}

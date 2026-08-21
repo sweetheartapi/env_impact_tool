@@ -228,10 +228,10 @@ def finalize_chrome():
                        "to unlock export.")
     ui.nav_status_css(step, statuses)
     # the tool is on screen; drop the hand-off overlay the welcome page put up
-    st.html("<script>(function(){var e=document.getElementById('eia-instant');"
-            "if(e){e.style.transition='opacity .25s ease';e.style.opacity='0';"
-            "setTimeout(function(){e.remove();},260);}})();</script>",
-            unsafe_allow_javascript=True)
+    welcome._script(
+        "<script>(function(){var e=document.getElementById('eia-instant');"
+        "if(e){e.style.transition='opacity .25s ease';e.style.opacity='0';"
+        "setTimeout(function(){e.remove();},260);}})();</script>")
 
 # ===========================================================================
 # STEP 1: Profiling & classification

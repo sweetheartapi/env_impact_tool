@@ -1,4 +1,6 @@
-streamlit>=1.35
+# 1.59 is the floor for st.html(unsafe_allow_javascript=...)
+# and width="stretch" on buttons, both used by the UI.
+streamlit>=1.59
 pandas>=2.0
 altair>=5.0
 python-docx>=1.1
