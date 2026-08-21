@@ -133,7 +133,8 @@ _HERO_ART = """
 # hills and sun, a node-studded growth arrow and a sage leaf. Used for the
 # sidebar brand and top bar.
 _LOGO_MARK = """
-<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<svg viewBox="0 0 48 48" width="48" height="48"
+     xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
   <defs>
     <linearGradient id="eiaTileBg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#EEF5EF"/>

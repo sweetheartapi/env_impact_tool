@@ -121,8 +121,9 @@ ui.inject_css(active_step=step, statuses=step_statuses)
 def _leave_welcome(target_step=1):
     S["seen_welcome"] = True
     S["step"] = target_step
+    # the welcome page paints its own overlay on click, which stays up
+    # across this rerun and is cleared once the tool has rendered
     st.rerun()
-
 
 # The introduction page stands in front of the tool on a first visit, and
 # stays reachable afterwards from the sidebar.
@@ -226,6 +227,11 @@ def finalize_chrome():
             st.caption("Complete step 1 (name + the two diagnostic questions) "
                        "to unlock export.")
     ui.nav_status_css(step, statuses)
+    # the tool is on screen; drop the hand-off overlay the welcome page put up
+    st.html("<script>(function(){var e=document.getElementById('eia-instant');"
+            "if(e){e.style.transition='opacity .25s ease';e.style.opacity='0';"
+            "setTimeout(function(){e.remove();},260);}})();</script>",
+            unsafe_allow_javascript=True)
 
 # ===========================================================================
 # STEP 1: Profiling & classification
