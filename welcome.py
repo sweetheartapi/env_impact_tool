@@ -885,7 +885,7 @@ def page(on_start, on_resume=None):
 
 </div>
 
-<div id="eia-instant" class="eia-launch" style="display:none" aria-hidden="true">
+<div id="eia-launch-template" style="display:none" aria-hidden="true">
   <div class="mk">{_MARK_BARE}</div>
   <div class="msg">Preparing your assessment</div>
   <div class="bar"><i></i></div>
@@ -895,23 +895,25 @@ def page(on_start, on_resume=None):
     # Scripts only execute through st.html; markdown would strip them.
     _script(_SCROLL_JS)
 
-    # Reveal that overlay the instant the button is pressed, so the round
-    # trip to the server happens behind it. The script carries no markup:
-    # an earlier version embedded the mark's SVG and Streamlit stripped the
-    # whole script. Moving the node onto <body> takes it out of Streamlit's
-    # managed subtree, so the rerun that follows cannot remove it.
+    # Show the overlay the instant the button is pressed, so the round trip
+    # to the server happens behind it. The script carries no markup: an
+    # earlier version embedded the mark's SVG and Streamlit stripped the
+    # whole script, so the markup is rendered above and cloned from here.
     _script("""
 <script>
 (function () {
-  function node() { return document.getElementById('eia-instant'); }
-  function detach() {
-    var d = node();
-    if (d && d.parentNode !== document.body) document.body.appendChild(d);
-  }
-  function show() {
-    var d = node();
-    if (!d) return;
+  // The template below is rendered and owned by Streamlit's React tree, so
+  // it must not be moved: relocating it makes React's next removeChild fail
+  // against a node that is no longer where it left it. Clone instead.
+  function overlay() {
+    if (document.getElementById('eia-instant')) return;
+    var tpl = document.getElementById('eia-launch-template');
+    if (!tpl) return;
+    var d = tpl.cloneNode(true);
+    d.id = 'eia-instant';
+    d.className = 'eia-launch';
     d.style.display = 'flex';
+    document.body.appendChild(d);
     var m = document.querySelector('section[data-testid="stMain"]');
     if (m) m.scrollTop = 0;
     window.scrollTo(0, 0);
@@ -924,17 +926,15 @@ def page(on_start, on_resume=None):
         found = true;
         if (!b.dataset.eiaWired) {
           b.dataset.eiaWired = '1';
-          b.addEventListener('click', show);
+          b.addEventListener('click', overlay);
         }
       }
     });
     return found;
   }
-  detach();
   if (!wire()) {
     var n = 0;
     var t = setInterval(function () {
-      detach();
       if (wire() || ++n > 60) clearInterval(t);
     }, 50);
   }
@@ -945,11 +945,11 @@ def page(on_start, on_resume=None):
     left, right = st.columns([1, 1])
     with left:
         if st.button("Start the assessment", type="primary",
-                     use_container_width=True, key="welcome_start"):
+                     width="stretch", key="welcome_start"):
             on_start()
     with right:
         if on_resume is not None:
             if st.button("I have a save file to resume",
-                         use_container_width=True,
+                         width="stretch",
                          key="welcome_resume"):
                 on_resume()

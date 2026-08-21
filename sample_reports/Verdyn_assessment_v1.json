@@ -1,0 +1,160 @@
+{
+  "format": "startup-env-impact-assessment",
+  "format_version": 2,
+  "exported": "2026-08-21",
+  "state": {
+    "startup_name": "Verdyn Agritech",
+    "startup_desc": "A precision-application platform for arable farms. Field sensors and satellite imagery produce zone-level pesticide maps, so growers treat only the parts of a field that need it instead of spraying the whole area.",
+    "sector": "AgTech / precision agriculture",
+    "stage": "Early commercialization",
+    "mechanism": "Enabling",
+    "orientation": "Primary",
+    "is_hybrid": false,
+    "secondary_mechanism": null,
+    "pathway": {
+      "Adoption chain": [
+        {
+          "stage": "Activities: product features / service delivered",
+          "description": "A field-sensor and satellite platform that tells arable growers which sub-field zones actually need pesticide, replacing blanket spraying with zone-specific application maps sent straight to the sprayer.",
+          "assumption": "Growers trust a zone map enough to spray less than their habitual full-field rate.",
+          "evidence": "Moderate (some evidence)"
+        },
+        {
+          "stage": "Outputs: customer adoption",
+          "description": "412 farms across 3 countries on paid subscriptions, covering 68,000 hectares. Adoption is evidenced by billing records and by sprayer telemetry confirming the maps were actually loaded.",
+          "assumption": "Subscribed hectares are genuinely farmed under the platform rather than signed up and left unused.",
+          "evidence": "Strong (verified data)"
+        },
+        {
+          "stage": "Outcomes: customer behavior change",
+          "description": "Growers apply pesticide to a mean 61% of field area instead of 100%. Sprayer telemetry gives applied litres per hectare before and after onboarding for 289 of the 412 farms.",
+          "assumption": "The reduction persists beyond the first season and is not offset by growers re-treating zones later in the year.",
+          "evidence": "Moderate (some evidence)"
+        },
+        {
+          "stage": "Impact: avoided environmental harm",
+          "description": "Lower pesticide load reaching soil and watercourses, plus lower upstream manufacturing emissions per hectare farmed. The baseline is the grower's own prior-season application record.",
+          "assumption": "Avoided application translates into proportionally avoided ecotoxicity, which the platform does not measure directly.",
+          "evidence": "Weak (assumption only)"
+        }
+      ]
+    },
+    "weakest_links": "The step from reduced application to avoided ecotoxicity is the weakest link: it is inferred, not measured. The platform evidences litres not applied and treats avoided harm as proportional to that. Persistence of the behaviour change beyond a single season is also not yet evidenced.",
+    "selected_indicators": {
+      "Scope 2 indirect emissions (purchased electricity & heat)": {
+        "category": "Emissions & Waste Output",
+        "feasibility": "High",
+        "relevance": "Medium",
+        "unit": "t CO₂e / yr",
+        "current_value": "31",
+        "target": "",
+        "frequency": "Annually",
+        "data_source": "Utility invoices × emission factors",
+        "pathway_link": "Adoption chain -> Impact: avoided environmental harm",
+        "citation": "ghgprotocol"
+      },
+      "Scope 3 value-chain emissions (screening level)": {
+        "category": "Emissions & Waste Output",
+        "feasibility": "Low",
+        "relevance": "High",
+        "unit": "t CO₂e / yr",
+        "current_value": "1240",
+        "target": "",
+        "frequency": "Annually",
+        "data_source": "Spend data × generic factors; supplier data",
+        "pathway_link": "Adoption chain -> Impact: avoided environmental harm",
+        "citation": "ghgprotocol"
+      },
+      "Total energy use over a defined period": {
+        "category": "Resource & Energy Input",
+        "feasibility": "High",
+        "relevance": "Medium",
+        "unit": "kWh / period",
+        "current_value": "112000",
+        "target": "",
+        "frequency": "Annually",
+        "data_source": "Utility invoices, production records",
+        "pathway_link": "",
+        "citation": "neumann2023"
+      },
+      "Avoided emissions vs. conventional reference technology": {
+        "category": "Product-Level Performance & Avoided Impact",
+        "feasibility": "Medium",
+        "relevance": "High",
+        "unit": "t CO₂e avoided / yr",
+        "current_value": "",
+        "target": "",
+        "frequency": "Annually",
+        "data_source": "Scenario-based calculation, contribution analysis",
+        "pathway_link": "Adoption chain -> Outcomes: customer behavior change",
+        "citation": "goyal2024"
+      },
+      "Avoided physical harm per unit of adoption (domain-specific)": {
+        "category": "Product-Level Performance & Avoided Impact",
+        "feasibility": "Medium",
+        "relevance": "High",
+        "unit": "domain-specific (e.g. kg pesticide avoided / ha)",
+        "current_value": "",
+        "target": "",
+        "frequency": "Annually",
+        "data_source": "Operational data + contribution analysis",
+        "pathway_link": "Adoption chain -> Outcomes: customer behavior change",
+        "citation": "mayne2008"
+      },
+      "Number / type of customers or partners using the solution for environmental purposes": {
+        "category": "Systemic & Enabling Contribution",
+        "feasibility": "Medium",
+        "relevance": "High",
+        "unit": "count + segmentation",
+        "current_value": "",
+        "target": "",
+        "frequency": "Annually",
+        "data_source": "CRM / sales data",
+        "pathway_link": "Adoption chain -> Outcomes: customer behavior change",
+        "citation": "markard2012"
+      }
+    },
+    "custom_indicators": {},
+    "uncertainty": {
+      "Scope 2 indirect emissions (purchased electricity & heat)": {
+        "level": "Measured",
+        "claim": "Verdyn customers applied 39% less pesticide per hectare in the 2025 season than in their own prior season.",
+        "assumptions": "Sprayer telemetry from 289 farms and prior-season application records supplied by the grower. Emission factors are EU-average rather than country-specific.",
+        "conditions": "A wet season raising disease pressure, or a change in residue regulation, could push growers back toward full-field application regardless of the zone map."
+      },
+      "Scope 3 value-chain emissions (screening level)": {
+        "level": "Modelled",
+        "claim": "Reduced application avoids an estimated 1.2 t CO2e per 1,000 hectares under management.",
+        "assumptions": "Sprayer telemetry from 289 farms and prior-season application records supplied by the grower. Emission factors are EU-average rather than country-specific.",
+        "conditions": "A wet season raising disease pressure, or a change in residue regulation, could push growers back toward full-field application regardless of the zone map."
+      },
+      "Total energy use over a defined period": {
+        "level": "Projected",
+        "claim": "At 250,000 hectares under management the same behaviour change would avoid roughly 300 t CO2e per year.",
+        "assumptions": "Sprayer telemetry from 289 farms and prior-season application records supplied by the grower. Emission factors are EU-average rather than country-specific.",
+        "conditions": "A wet season raising disease pressure, or a change in residue regulation, could push growers back toward full-field application regardless of the zone map."
+      },
+      "Avoided emissions vs. conventional reference technology": {
+        "level": "Measured",
+        "claim": "Verdyn customers applied 39% less pesticide per hectare in the 2025 season than in their own prior season.",
+        "assumptions": "Sprayer telemetry from 289 farms and prior-season application records supplied by the grower. Emission factors are EU-average rather than country-specific.",
+        "conditions": "A wet season raising disease pressure, or a change in residue regulation, could push growers back toward full-field application regardless of the zone map."
+      },
+      "Avoided physical harm per unit of adoption (domain-specific)": {
+        "level": "Modelled",
+        "claim": "Reduced application avoids an estimated 1.2 t CO2e per 1,000 hectares under management.",
+        "assumptions": "Sprayer telemetry from 289 farms and prior-season application records supplied by the grower. Emission factors are EU-average rather than country-specific.",
+        "conditions": "A wet season raising disease pressure, or a change in residue regulation, could push growers back toward full-field application regardless of the zone map."
+      },
+      "Number / type of customers or partners using the solution for environmental purposes": {
+        "level": "Projected",
+        "claim": "At 250,000 hectares under management the same behaviour change would avoid roughly 300 t CO2e per year.",
+        "assumptions": "Sprayer telemetry from 289 farms and prior-season application records supplied by the grower. Emission factors are EU-average rather than country-specific.",
+        "conditions": "A wet season raising disease pressure, or a change in residue regulation, could push growers back toward full-field application regardless of the zone map."
+      }
+    },
+    "assessment_version": 1,
+    "next_review_milestone": "First significant commercial scale",
+    "review_notes": "Revisit once telemetry covers two full seasons, which would move the persistence assumption from Projected to Measured. Replace EU-average emission factors with national factors before publishing any CO2e figure."
+  }
+}

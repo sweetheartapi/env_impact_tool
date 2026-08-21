@@ -64,6 +64,18 @@ init_state()
 S = st.session_state
 
 
+def opt_index(options, value, fallback=0):
+    """Position of value in options, or fallback if it is not there.
+
+    Imported assessments can carry values this build no longer offers, and a
+    picker must degrade to a sensible default rather than raise.
+    """
+    return options.index(value) if value in options else fallback
+
+
+FREQUENCIES = ["", "Monthly", "Quarterly", "Annually", "Per milestone"]
+
+
 def goto(step):
     S["step"] = step
     st.rerun()
@@ -143,7 +155,7 @@ with st.sidebar:
     for s_num in range(1, 6):
         name, _sub = ui.STEP_META[s_num]
         with st.container(key=f"navrow{s_num}"):
-            if st.button(name, key=f"navbtn{s_num}", use_container_width=True):
+            if st.button(name, key=f"navbtn{s_num}", width="stretch"):
                 goto(s_num)
 
     # Progress and export are filled in at the END of the script run (see
@@ -171,9 +183,14 @@ with st.sidebar:
                 for k, v in loaded.items():
                     if k in DEFAULTS and v is not None:
                         S[k] = v
-                # drop the stage widget's mirror state so the selectbox
-                # re-initializes from the imported value
-                S.pop("stage_widget", None)
+                # The stage picker is keyed, so its value lives in widget
+                # state: deleting the mirror leaves the stale value to win
+                # the next run. Assigning the key is what overrides it.
+                # A file can also name a stage this build does not list, so
+                # fall back rather than letting Streamlit reject the value.
+                if S["stage"] not in ref.STAGES:
+                    S["stage"] = DEFAULTS["stage"]
+                S["stage_widget"] = S["stage"]
                 S["_imported"] = True
                 st.success(f"Loaded. You are now on review cycle v{S['assessment_version']}.")
                 st.rerun()
@@ -181,11 +198,11 @@ with st.sidebar:
                 st.error(f"Could not load file: {exc}")
 
     if st.button("📖 Introduction & guide", key="show_guide",
-                 use_container_width=True):
+                 width="stretch"):
         S["seen_welcome"] = False
         st.rerun()
 
-    if st.button("↺ Restart assessment", key="restart", use_container_width=True):
+    if st.button("↺ Restart assessment", key="restart", width="stretch"):
         for k in list(st.session_state.keys()):
             del st.session_state[k]
         init_state()
@@ -213,13 +230,13 @@ def finalize_chrome():
                     file_name=f"{name_slug}_impact_report.docx",
                     mime="application/vnd.openxmlformats-officedocument"
                          ".wordprocessingml.document",
-                    use_container_width=True, type="primary", key="side_docx")
+                    width="stretch", type="primary", key="side_docx")
             except Exception as exc:
                 st.caption(f"Word export unavailable: {exc}")
             st.download_button(
                 "💾 Save progress (.json)", data=rpt.export_state(state_dict()),
                 file_name=f"{name_slug}_assessment_v{S['assessment_version']}.json",
-                mime="application/json", use_container_width=True, key="side_json")
+                mime="application/json", width="stretch", key="side_json")
             st.caption("**JSON is the save file**: re-import it under "
                        "“Save & resume” to continue this assessment later. "
                        "The Word report is the finished document to share.")
@@ -228,10 +245,14 @@ def finalize_chrome():
                        "to unlock export.")
     ui.nav_status_css(step, statuses)
     # the tool is on screen; drop the hand-off overlay the welcome page put up
+    # Fades out the cloned overlay. Only ever touches the clone, which React
+    # does not manage, so removing it cannot disturb Streamlit's DOM.
     welcome._script(
         "<script>(function(){var e=document.getElementById('eia-instant');"
-        "if(e){e.style.transition='opacity .25s ease';e.style.opacity='0';"
-        "setTimeout(function(){e.remove();},260);}})();</script>")
+        "if(e&&e.parentNode===document.body){"
+        "e.style.transition='opacity .25s ease';e.style.opacity='0';"
+        "setTimeout(function(){if(e.parentNode===document.body)"
+        "document.body.removeChild(e);},260);}})();</script>")
 
 # ===========================================================================
 # STEP 1: Profiling & classification
@@ -261,7 +282,7 @@ if step == 1:
 
                 S["stage"] = st.selectbox(
                     "Development stage", ref.STAGES,
-                    index=ref.STAGES.index(S["stage"]),
+                    index=opt_index(ref.STAGES, S["stage"]),
                     key="stage_widget", on_change=_sync_stage,
                     help="The framework adapts its guidance: module depth "
                          "varies by development stage.")
@@ -311,7 +332,7 @@ if step == 1:
         # stays disabled until the required fields are filled in.
         ready = bool(S["startup_name"]) and classified()
         if st.button("Save & continue →", type="primary",
-                     use_container_width=True, disabled=not ready):
+                     width="stretch", disabled=not ready):
             goto(2)
         if not ready:
             missing = []
@@ -419,9 +440,9 @@ elif step == 2:
                         "recommendations is the weakest link: adoption ≠ behavior change.")
 
         b1, _, b2 = st.columns([1, 2, 1])
-        if b1.button("← Back", use_container_width=True):
+        if b1.button("← Back", width="stretch"):
             goto(1)
-        if b2.button("Save & continue →", type="primary", use_container_width=True):
+        if b2.button("Save & continue →", type="primary", width="stretch"):
             goto(3)
 
     with right:
@@ -481,11 +502,13 @@ elif step == 3:
                             })
                             entry["feasibility"] = cols[1].selectbox(
                                 "Feasibility", scoring.LEVELS,
-                                index=scoring.LEVELS.index(entry["feasibility"]),
+                                index=opt_index(scoring.LEVELS,
+                                                entry["feasibility"], 1),
                                 key=f"feas_{name}")
                             entry["relevance"] = cols[2].selectbox(
                                 "Relevance", scoring.LEVELS,
-                                index=scoring.LEVELS.index(entry["relevance"]),
+                                index=opt_index(scoring.LEVELS,
+                                                entry["relevance"], 1),
                                 key=f"rel_{name}")
                             bucket = scoring.bucket_indicator(entry["feasibility"],
                                                               entry["relevance"])
@@ -530,11 +553,13 @@ elif step == 3:
                                                     value=entry.get("target", ""),
                                                     key=f"tgt_{name}")
                     c4, c5 = st.columns(2)
+                    # An imported save file can carry a frequency this build
+                    # does not offer, so fall back rather than raising, the
+                    # same way the evidence and pathway-link pickers do.
+                    freq = entry.get("frequency", "")
                     entry["frequency"] = c4.selectbox(
-                        "Measurement frequency",
-                        ["", "Monthly", "Quarterly", "Annually", "Per milestone"],
-                        index=["", "Monthly", "Quarterly", "Annually",
-                               "Per milestone"].index(entry.get("frequency", "")),
+                        "Measurement frequency", FREQUENCIES,
+                        index=opt_index(FREQUENCIES, freq),
                         key=f"freq_{name}")
                     entry["data_source"] = c5.text_input(
                         "Actual data source you will use",
@@ -590,7 +615,7 @@ elif step == 3:
                 )
                 # theme=None keeps Streamlit from re-theming the chart on top
                 # of the explicit configuration above.
-                st.altair_chart(chart, use_container_width=True, theme=None)
+                st.altair_chart(chart, width="stretch", theme=None)
                 st.caption("Top-right = core set. Top-left = aspirational (relevant "
                            "but not yet feasible). Bottom row = excluded regardless "
                            "of feasibility.")
@@ -622,9 +647,9 @@ elif step == 3:
                        "factors used as its assumptions.")
 
         b1, _, b2 = st.columns([1, 2, 1])
-        if b1.button("← Back ", use_container_width=True):
+        if b1.button("← Back ", width="stretch"):
             goto(2)
-        if b2.button("Save & continue →", type="primary", use_container_width=True):
+        if b2.button("Save & continue →", type="primary", width="stretch"):
             goto(4)
 
     with right:
@@ -685,7 +710,7 @@ elif step == 4:
                                 "14% per hectare.”")
                 u["level"] = st.radio(
                     "Evidential confidence", list(ref.CONFIDENCE_LEVELS.keys()),
-                    index=list(ref.CONFIDENCE_LEVELS.keys()).index(u["level"]),
+                    index=opt_index(list(ref.CONFIDENCE_LEVELS), u["level"], 1),
                     horizontal=True, key=f"lvl_{name}")
                 st.caption(ref.CONFIDENCE_LEVELS[u["level"]])
                 if u["level"] == "Projected":
@@ -700,9 +725,9 @@ elif step == 4:
                 S["uncertainty"][name] = u
 
         b1, _, b2 = st.columns([1, 2, 1])
-        if b1.button("← Back", use_container_width=True):
+        if b1.button("← Back", width="stretch"):
             goto(3)
-        if b2.button("Save & continue →", type="primary", use_container_width=True):
+        if b2.button("Save & continue →", type="primary", width="stretch"):
             goto(5)
 
     with right:
@@ -783,7 +808,7 @@ elif step == 5:
                                    file_name=f"{name_slug}_impact_report.docx",
                                    mime="application/vnd.openxmlformats-officedocument"
                                         ".wordprocessingml.document",
-                                   use_container_width=True, type="primary")
+                                   width="stretch", type="primary")
                 st.caption("The complete document: headings, table of contents, "
                            "indicator tables, confidence badges. On first "
                            "opening in Word, right-click the table of contents "
@@ -794,7 +819,7 @@ elif step == 5:
             st.markdown("**💾 The save file, for continuing later**")
             st.download_button("Save progress (.json)", data=report_json,
                                file_name=f"{name_slug}_assessment_v{S['assessment_version']}.json",
-                               mime="application/json", use_container_width=True)
+                               mime="application/json", width="stretch")
             st.caption("**JSON is the only format that loads back into the "
                        "tool.** Keep it to resume this assessment at your next "
                        "review milestone. Re-import it under “Save & resume” "
@@ -804,14 +829,14 @@ elif step == 5:
             c2, c3 = st.columns(2)
             c2.download_button("⬇️ HTML (print to PDF)", data=report_html,
                                file_name=f"{name_slug}_impact_report.html",
-                               mime="text/html", use_container_width=True)
+                               mime="text/html", width="stretch")
             c3.download_button("⬇️ Markdown", data=report_md,
                                file_name=f"{name_slug}_impact_report.md",
-                               mime="text/markdown", use_container_width=True)
+                               mime="text/markdown", width="stretch")
             st.caption("Alternative formats of the same report. Neither can be "
                        "re-imported. Use the JSON save file for that.")
 
-        if st.button("← Back", use_container_width=False):
+        if st.button("← Back", width="content"):
             goto(4)
 
     with right:
