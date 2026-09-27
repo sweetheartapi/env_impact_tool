@@ -1,6 +1,43 @@
-App published on **Streamlit:** https://eiatool.streamlit.app/
+**Live app (GitHub Pages):** https://sweetheartapi.github.io/env_impact_tool/
 
-# Startup Environmental Impact Assessment Tool (v2.1.1)
+# Startup Environmental Impact Assessment Tool (v3.0)
+
+## v3.0: static web version on GitHub Pages
+
+The tool now runs as a static website in [`docs/`](docs/), served by GitHub
+Pages. There is no server: everything runs in the browser, which fixes the
+Streamlit version's reload lag, dark-mode rendering glitches and cold starts.
+
+- **Same framework, same rules.** `docs/js/framework.js` is a direct port of
+  `framework/reference.py` and `framework/scoring.py`; `docs/js/report.js`
+  ports `framework/report.py` (Markdown, HTML, Word and JSON).
+- **Save files are compatible** in both directions with the Streamlit
+  version (same `startup-env-impact-assessment` JSON format).
+- **Progress saves automatically** in the browser (localStorage), so a reload
+  or closed tab loses nothing. The JSON save file is still the way to move an
+  assessment between devices or keep it long-term.
+- **Word export** is generated in the browser with the bundled
+  [docx](https://github.com/dolanmiu/docx) library (`docs/vendor/`), with
+  headings, a table of contents, indicator tables, colour-coded confidence
+  badges and page numbers. PDF export uses the browser's print dialog.
+- **Works on phones**: the step list becomes a slide-out drawer.
+- Not carried over: the optional AI assistant panel. It needs a secret API key,
+  which a public static site cannot keep private.
+
+To edit content (wording, indicators, rules), change `docs/js/framework.js`.
+To preview locally:
+
+```bash
+python -m http.server 8000 --directory docs
+```
+
+then open http://localhost:8000. Pushing to `main` redeploys the site.
+
+The original Streamlit app (below) is unchanged and still runs locally.
+
+---
+
+# Streamlit version (v2.1.1)
 
 ## Fixed bugs (v2.1.1)
 - Unclear/black input fields — inputs, dropdowns, and labels now forced light with white backgrounds, visible borders, and dark semibold labels regardless of the browser's dark-mode setting.
