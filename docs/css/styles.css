@@ -456,3 +456,10 @@ table.claims .na { color: #9AA39D; font-size: .78rem; }
 .al-why, .al-test { margin: .3rem 0 0; font-size: .85rem; line-height: 1.5; color: #3E4A43; }
 .al-mark { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: .6rem; margin-top: .6rem; padding-left: 2.05rem; }
 @media (max-width: 640px) { .al-mark { grid-template-columns: minmax(0, 1fr); padding-left: 0; } }
+.rule-id { margin-left: auto; font-size: .7rem; font-weight: 700; color: #7A857E; border: 1px solid var(--border); border-radius: .4rem; padding: .02rem .4rem; font-family: ui-monospace, Menlo, monospace; }
+.rec.strength { border-left-color: #1E6A47; background: #F7FBF8; }
+.rec.strength .prio { background: #E3F1E7; color: #1E6A47; }
+ul.trace { margin: 0; padding-left: 1rem; color: #4A564F; font-size: .82rem; }
+.why-shown { display: block; font-size: .76rem; color: #7A857E; margin-top: .15rem; }
+table.rules tr.fired td { background: #F4F9F5; }
+table.rules td:last-child { white-space: nowrap; font-weight: 700; color: #1E6A47; }

@@ -743,22 +743,42 @@
 
   // ============================================================= step 5 ==
 
+  const basedOn = trace => trace.length
+    ? `<dt>Based on</dt><dd><ul class="trace">${trace.map(t => `<li>${h(t)}</li>`).join("")}</ul></dd>` : "";
+
+  function recCard(a) {
+    return `<li class="rec p${a.priority}${a.type === "strength" ? " strength" : ""}">
+      <div class="rec-head"><span class="prio">${a.type === "strength" ? "Strength" : h(SCORING.PRIORITY_LABEL[a.priority]) + " priority"}</span><b>${h(a.title)}</b><span class="rule-id" title="Decision rule">${h(a.id.split(".")[0])}</span></div>
+      <dl><dt>Detected condition</dt><dd>${h(a.condition)}</dd>
+        <dt>Recommended action</dt><dd><b>${h(a.action)}</b></dd>
+        <dt>Why it matters</dt><dd>${h(a.implication)}</dd>
+        <dt>Why now (${h(S.stage)})</dt><dd>${h(a.why_now)}</dd>
+        ${basedOn(a.trace)}</dl></li>`;
+  }
+
   function nextStepsHTML() {
     ensurePathway();
     const ns = SCORING.nextSteps(S);
     const actions = ns.actions.length
-      ? `<ol class="rec-list">${ns.actions.map(a => `<li class="rec p${a.priority}">
-          <div class="rec-head"><span class="prio">${h(SCORING.PRIORITY_LABEL[a.priority])} priority</span><b>${h(a.title)}</b></div>
-          <dl><dt>Evidence gap</dt><dd>${h(a.gap)}</dd>
-            <dt>What it means</dt><dd>${h(a.implication)}</dd>
-            <dt>Recommended action</dt><dd>${h(a.action)}</dd>
-            <dt>Why now (${h(S.stage)})</dt><dd>${h(a.why_now)}</dd></dl></li>`).join("")}</ol>` +
+      ? `<ol class="rec-list">${ns.actions.map(recCard).join("")}</ol>` +
         (ns.more ? `<p class="caption">${ns.more} lower-priority recommendation(s) not shown. Resolve the ones above first.</p>` : "")
       : alert("ok", "No open gaps found. Keep the assessment current at your next review milestone.");
+    const strengths = ns.strengths.length
+      ? `<h3 class="sub-h">What you can already show</h3><ol class="rec-list">${ns.strengths.map(recCard).join("")}</ol>` : "";
     const consider = ns.consider.length
       ? `<div class="consider"><h3>Points to consider</h3><p class="caption" style="margin:0 0 .5rem">Questions worth a thought. Ignore any that do not apply.</p>
-          <ul>${ns.consider.map(c => `<li><b>${h(c.title)}</b> ${h(c.text)}</li>`).join("")}</ul></div>` : "";
-    return actions + consider;
+          <ul>${ns.consider.map(c => `<li><b>${h(c.title)}</b> ${h(c.text)}<span class="why-shown">${h(c.id)} · shown because: ${h(c.trace.join("; "))}</span></li>`).join("")}</ul></div>` : "";
+    return actions + strengths + consider + rulesTableHTML(ns.fired);
+  }
+
+  // Every decision rule, and whether it fired for this assessment.
+  function rulesTableHTML(fired) {
+    const on = new Set(fired);
+    const KIND = { gap: "Recommendation", strength: "Strength", consider: "Point to consider" };
+    const rows = SCORING.RULES.map(([id, kind, title, cond]) =>
+      `<tr class="${on.has(id) ? "fired" : ""}"><td><b>${h(id)}</b></td><td>${h(title)}<div class="caption">${h(KIND[kind])}</div></td><td>${h(cond)}</td><td>${on.has(id) ? "✓ applies" : "–"}</td></tr>`).join("");
+    return expander("rules", "⚙️ How recommendations are made", `<p style="margin-top:0">Recommendations come from fixed, transparent decision rules applied to your answers, not from a language model. Each recommendation names its rule and the answers that triggered it, so it can be traced back and checked. Priority depends on your development stage.</p>
+      <div class="table-scroll"><table class="claims rules"><thead><tr><th>Rule</th><th>Recommendation</th><th>Fires when</th><th>Here</th></tr></thead><tbody>${rows}</tbody></table></div>`, false);
   }
 
   // Impact-business alignment: where the environmental benefit depends on

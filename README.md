@@ -67,6 +67,16 @@ Central Bohemian Innovation Centre (SIC):
   Report sections are now: 1 profile, 2 pathway, 3 indicators, 4 claims &
   evidence, 5 integrity checks, 6 impact–business alignment,
   7 recommendations, 8 review plan.
+- **Traceable decision rules.** Recommendations and points to consider
+  come from a fixed rule set (`SCORING.RULES` in `docs/js/framework.js`:
+  R01–R16 recommendations, S01 strength, C01–C17 points to consider), not
+  from a language model. Each recommendation shows its rule ID, the
+  detected condition, the recommended action, why it matters, why now, and
+  "based on": the exact assessment answers that triggered it. A strength
+  rule (S01) fires when a claim is measured, high quality, sourced and
+  documented, suggesting an evidence summary. Step 5 has a "How
+  recommendations are made" table of all rules and which ones apply, and
+  the report ends with the same table as an appendix.
 - Save files gain optional keys: `customer_types`, `revenue_models`,
   `customer_profile` (the buyer), `customer_user`, `behaviour_actor`,
   `value_drivers`, `customer_value`, `custom_kinds`, `change` on each pathway

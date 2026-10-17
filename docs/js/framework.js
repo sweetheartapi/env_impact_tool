@@ -533,8 +533,9 @@ SCORING.integrityChecks = function (selected, uncertainty, pathway) {
 // consultation, Oct 2026). The report should not stop at a diagnosis: it
 // ends with concrete next steps drawn from the gaps in this assessment, and
 // with "Have you considered...?" prompts the team is free to ignore.
-// Returns {actions: [{key, title, priority, gap, implication, action, why_now}],
-//          more: n hidden lower-priority actions, consider: [{title, text}]}.
+// Returns {actions: [{id, type, title, priority, condition, implication, action,
+//          why_now, trace}], more, hidden, strengths, consider: [{id, title, text,
+//          trace}], fired: [rule ids]}. See SCORING.RULES for every rule.
 // ===========================================================================
 
 SCORING.MAX_ACTIONS = 7;
@@ -551,6 +552,46 @@ SCORING.RELEVANCE_PHRASE = {
   2: "Worth doing now, after the high-priority items.",
   1: "This can wait; note it for a later stage.",
 };
+
+// The complete rule set behind the recommendations, in plain language, so a
+// reader can check which rules exist and which ones fired for a startup.
+// [id, kind, title, condition]; kind: gap | strength | consider.
+SCORING.RULES = [
+  ["R01", "gap", "Name your customer", "Customer segment, revenue model or buyer is missing in step 1."],
+  ["R02", "gap", "Name who has to change behaviour", "The impact mechanism is enabling, but nobody is named whose behaviour must change (step 1)."],
+  ["R03", "gap", "Test the weakest link", "A pathway step is rated “Weak (assumption only)” (step 2); at most two, later steps first."],
+  ["R04", "gap", "Validate customer adoption", "Pathway steps depend on customer adoption or behaviour change, and none of them has moderate or strong evidence (step 2)."],
+  ["R05", "gap", "Mark the steps that depend on customers", "The mechanism is enabling, but no pathway step is marked as depending on customers (step 2)."],
+  ["R06", "gap", "Complete the impact pathway", "One or more pathway steps have no description (step 2)."],
+  ["R07", "gap", "Choose a core indicator", "No indicator is both highly relevant and at least moderately feasible (step 3)."],
+  ["R08", "gap", "Record a baseline", "A core indicator has no current value (step 3)."],
+  ["R09", "gap", "Measure the projected impact", "An outcome or adoption claim is labelled Projected and no real-world outcome claim is Measured (step 4)."],
+  ["R10", "gap", "Turn one claim into a measured one", "No core claim is labelled Measured, and R09 does not apply (step 4)."],
+  ["R11", "gap", "Measure real impact, not only the technology", "No core indicator measures adoption or a real-world outcome (step 3)."],
+  ["R12", "gap", "Close the claim–evidence gaps", "At least one claim–evidence gap is flagged (step 4): a projection worded as fact, a comparison without baseline, low-quality measured data, missing sources, or a contradiction with step 2."],
+  ["R13", "gap", "Plan your future indicators", "An indicator is highly relevant but low in feasibility (aspirational, step 3)."],
+  ["R14", "gap", "Find out who gains and who would pay", "No reason for customers to buy is recorded, or only “no direct financial benefit yet” (step 1)."],
+  ["R15", "gap", "Check a commercial assumption", "An impact–business alignment assumption is not validated (step 5); at most three, skipping those on a step R03 already covers."],
+  ["R16", "gap", "Set the next review", "No review milestone is set (step 5)."],
+  ["S01", "strength", "Prepare an evidence summary", "A claim is Measured, of high evidence quality, has sources and documented assumptions, and has no claim–evidence gap (step 4)."],
+  ["C01", "consider", "Which customer comes first?", "More than one customer segment is selected."],
+  ["C02", "consider", "Is your impact data a selling point?", "Customer segment includes B2B."],
+  ["C03", "consider", "How will you word claims to consumers?", "Customer segment includes B2C."],
+  ["C04", "consider", "What do public buyers ask for?", "Customer segment includes B2G."],
+  ["C05", "consider", "Is your evidence about the right people?", "Enabling, and the person whose behaviour must change differs from the buyer."],
+  ["C06", "consider", "Do the users actually use it?", "The user differs from the buyer (and C05 does not apply)."],
+  ["C07", "consider", "Who has to change their behaviour?", "Enabling, and nobody is named whose behaviour must change."],
+  ["C08", "consider", "Does churn also cut your impact?", "Revenue model includes a subscription."],
+  ["C09", "consider", "What happens after the sale?", "Revenue model includes a one-off sale."],
+  ["C10", "consider", "Can you see how licensees deploy it?", "Revenue model includes licensing."],
+  ["C11", "consider", "Is your billing data also impact data?", "Revenue model includes pay per use."],
+  ["C12", "consider", "Can one dataset show both savings?", "Enabling, and customers buy because it saves them money."],
+  ["C13", "consider", "What about rebound effects?", "Enabling or secondary orientation, and rebound is not mentioned anywhere in steps 2–4."],
+  ["C14", "consider", "What happens at end of life?", "Direct mechanism, and end of life, recycling or disposal is not mentioned in steps 2–4."],
+  ["C15", "consider", "Do you know your own footprint?", "Value orientation is secondary."],
+  ["C16", "consider", "Is it time for external verification?", "Stage is early commercialization or growth."],
+  ["C17", "consider", "How will investors read this?", "At least half of the labelled claims are Projected."],
+];
 
 // ===========================================================================
 // Impact-business alignment (added after the SIC consultation, Oct 2026).
@@ -608,9 +649,9 @@ SCORING.alignment = function (state) {
   }
 
   const A = [];
-  const add = (key, rel, title, text, why, test, step) => {
+  const add = (key, rel, title, text, why, test, step, basis) => {
     const m = marks[key] || {};
-    A.push({ key, rel, title, text, why, test, step: step || "",
+    A.push({ key, rel, title, text, why, test, step: step || "", basis: basis || [],
       status: SCORING.ALIGN_STATUS.some(([k]) => k === m.status) ? m.status : "unchecked", note: m.note || "",
       gap: `Assumption not yet checked: ${text.charAt(0).toLowerCase() + text.slice(1)}` });
   };
@@ -620,34 +661,34 @@ SCORING.alignment = function (state) {
       `Customers find the product worth paying for${revLabel ? ` (${revLabel})` : ""}.`,
       "If customers do not buy it, the adoption step never happens and none of the environmental benefit follows.",
       "Interview pilot customers about what the problem costs them today and what they would pay. A paid pilot or a letter of intent is stronger evidence than stated interest.",
-      adoptStep && adoptStep.stage);
+      adoptStep && adoptStep.stage, adoptStep ? [`Step 2 · ${adoptStep.stage}: marked “adoption needed”`] : ["Step 1 · Impact mechanism: Enabling"]);
   }
   if (behavStep || enabling) {
     add("use", [2, 3, 3, 2], "Check that use turns into behaviour change",
       "Using the product leads to an actual change in what customers or users do.",
       "Customers can pay and still carry on as before; the environmental benefit needs the change, not the sale.",
       "Track whether recommendations or features translate into behaviour change: usage logs combined with the data from the behaviour step.",
-      behavStep && behavStep.stage);
+      behavStep && behavStep.stage, behavStep ? [`Step 2 · ${behavStep.stage}: marked “behaviour change needed”`] : ["Step 1 · Impact mechanism: Enabling"]);
   }
   if (linked.includes("cost")) {
     add("same_change", [2, 3, 3, 3], "Check that the saving and the impact come from the same change",
       "The change that saves the customer money is the same change that produces the environmental benefit, and it yields measurable net savings.",
       "If customers save money in another way (e.g. labour or time), the business can succeed while the environmental benefit stays small.",
       "Compare pilot usage against a clearly defined baseline, tracking the customer's saving and the environmental saving from the same data.",
-      impactStep && impactStep.stage);
+      impactStep && impactStep.stage, ["Step 1 · Why customers buy: it saves them money"]);
     if (enabling) {
       add("rebound", [1, 2, 2, 3], "Check for rebound effects",
         "Lower costs do not lead customers to expand their use (e.g. irrigate more land with the water they save).",
         "Commercial success can then erode the net environmental benefit: the better the product sells, the more the rebound matters.",
         "Ask pilot customers what they do with the savings, and track the total, not only the per-unit, resource use.",
-        impactStep && impactStep.stage);
+        impactStep && impactStep.stage, ["Step 1 · Why customers buy: it saves them money", "Step 1 · Impact mechanism: Enabling"]);
     }
   }
   if (revenue.includes("subscription") || revenue.includes("hardware_sub")) {
     add("retention", [1, 2, 3, 3], "Check that customers stay",
       "Customers keep paying and using the product beyond the first season or year.",
       "With a subscription, the impact stops when a customer cancels, so churn directly reduces the environmental benefit.",
-      "Track retention of active customers per period and report impact only for customers who stay.");
+      "Track retention of active customers per period and report impact only for customers who stay.", "", ["Step 1 · Revenue model: subscription"]);
   }
   const projectedAdoption = Object.entries(unc).some(([n, u]) => u.level === "Projected" &&
     ["adoption", "outcome"].includes(REF.indicatorKind(n, (state.selected_indicators || {})[n])));
@@ -655,7 +696,7 @@ SCORING.alignment = function (state) {
     add("scale", [1, 2, 3, 3], "Check the adoption your projection assumes",
       "Adoption grows to the level that your projected impact figures assume.",
       "A projected environmental figure is only as good as the sales forecast behind it.",
-      "State the number of customers or hectares each projection assumes, and compare it with your actual sales pipeline.");
+      "State the number of customers or hectares each projection assumes, and compare it with your actual sales pipeline.", "", ["Step 4 · an adoption or outcome claim is labelled Projected"]);
   }
 
   return {
@@ -669,8 +710,6 @@ SCORING.MAX_CONSIDER = 6;
 
 SCORING.nextSteps = function (state) {
   const actions = [], consider = [];
-  const act = (title, text) => actions.push({ title, text });
-  const ask = (title, text) => consider.push({ title, text });
   const list = names => names.map(n => `“${n}”`).join(", ");
 
   const pathway = state.pathway || {};
@@ -693,231 +732,302 @@ SCORING.nextSteps = function (state) {
   const allText = [state.weakest_links || "", ...stagesFlat.map(s => `${s.description || ""} ${s.assumption || ""}`),
     ...Object.values(unc).map(u => `${u.assumptions || ""} ${u.conditions || ""}`)].join(" ").toLowerCase();
 
-  // ---- Recommendations: structured, prioritised by development stage ------
-  // Each one explains the evidence gap, what it implies, the action, and
-  // why it matters at the startup's current stage (module 5).
-  // rel = relevance per stage [Ideation, Validation, Early comm., Growth]:
-  // 3 high, 2 medium, 1 low.
+  // ---- Recommendations ----------------------------------------------------
+  // Transparent decision rules (SCORING.RULES). Every recommendation names
+  // the rule that produced it and the assessment answers that triggered it
+  // ("based on"), so it can be traced back and checked by hand. No language
+  // model is involved.
+  const fired = new Set();
   const stageIdx = Math.max(0, REF.STAGES.indexOf(state.stage));
-  const rec = (key, rel, title, gap, implication, action, stageNote) => {
+  const rec = (id, rel, title, condition, implication, action, trace, stageNote, type = "gap") => {
+    fired.add(id.split(".")[0]);
     const r = rel[stageIdx];
     const note = (stageNote && stageNote[stageIdx]) || SCORING.RELEVANCE_PHRASE[r];
-    actions.push({ key, title, priority: r, gap, implication, action,
+    actions.push({ id, type, title, priority: r, condition, implication, action, trace: trace || [],
       why_now: `${SCORING.STAGE_LEAD[REF.STAGES[stageIdx]]} ${note}`,
-      text: `${gap} ${action}` });
+      // aliases kept for older callers
+      gap: condition, text: `${condition} ${action}` });
   };
+  const ask = (id, title, text, trace) => { fired.add(id); consider.push({ id, title, text, trace: trace || [] }); };
+  const stepAns = (st, label, val) => `Step ${st} · ${label}: ${val}`;
+  const ev = s => s.evidence || "Not rated";
 
-  // Customer profile missing: everything downstream depends on it.
+  // R01 customer profile missing
   if (!types.length || !buyer || !revenue.length) {
-    const miss = [];
-    if (!types.length) miss.push("the customer segment (B2B, B2C, B2G or a mix)");
-    if (!revenue.length) miss.push("the revenue model");
-    if (!buyer) miss.push("who the buyer is");
-    rec("customer", [3, 3, 2, 2], "Name your customer",
+    const miss = [], tr = [];
+    if (!types.length) { miss.push("the customer segment (B2B, B2C, B2G or a mix)"); tr.push(stepAns(1, "Customer segment", "not answered")); }
+    if (!revenue.length) { miss.push("the revenue model"); tr.push(stepAns(1, "Revenue model", "not answered")); }
+    if (!buyer) { miss.push("who the buyer is"); tr.push(stepAns(1, "Buyer", "empty")); }
+    rec("R01", [3, 3, 2, 2], "Name your customer",
       `Step 1 does not yet say ${miss.join(", ")}.`,
       "Impact only happens if someone pays for and uses the solution; without a named customer, nobody can judge whether the adoption your impact depends on is realistic.",
-      `Fill in ${miss.join(", ")} in step 1.`);
+      `Fill in ${miss.join(", ")} in step 1.`, tr);
   }
+  // R02 behaviour actor missing
   if (enabling && !actor) {
-    rec("actor", [3, 3, 2, 2], "Name who has to change behaviour",
-      "Your impact depends on someone doing things differently, but step 1 does not say who.",
+    rec("R02", [3, 3, 2, 2], "Name who has to change behaviour",
+      "Impact relies on someone changing behaviour, but nobody is named.",
       "Your evidence may then cover the wrong people: a signed contract shows a purchase, not a change in behaviour.",
-      "Say in step 1 whose behaviour must change: the buyer, the day-to-day user, or someone else.");
+      "Say in step 1 whose behaviour must change: the buyer, the day-to-day user, or someone else.",
+      [stepAns(1, "Impact mechanism", state.mechanism + (state.is_hybrid ? " (hybrid)" : "")), stepAns(1, "Whose behaviour must change", "empty")]);
+  }
+  // R14 business benefit unclear
+  if (!drivers.length || (drivers.length === 1 && drivers[0] === "none")) {
+    rec("R14", [3, 3, 3, 2], "Find out who gains and who would pay",
+      "No plausible customer benefit or payment rationale has been identified.",
+      "A solution may have environmental potential without a viable route to adoption, and then the benefit never materialises.",
+      "Investigate who receives financial or operational value from the product and who is willing to pay for it: a few customer interviews about what the problem costs them today.",
+      [stepAns(1, "Why customers buy", drivers.length ? "“no direct financial benefit yet”" : "not answered")]);
   }
 
-  // Weakest links: assumptions with no evidence (later links first).
+  // R03 weakest links (later links in the chain first)
   const rank = s => /impact/i.test(s.stage) ? 0 : /outcome/i.test(s.stage) ? 1 : /output/i.test(s.stage) ? 2 : 3;
   const weak = stagesFlat.filter(s => s.evidence === "Weak (assumption only)").sort((x, y) => rank(x) - rank(y));
-  weak.slice(0, 2).forEach(s => {
+  weak.slice(0, 2).forEach((s, k) => {
     let action = "Design one small, cheap test that would confirm or refute it before you build further claims on it.";
     if (enabling && /outcome|behav/i.test(s.stage)) action += " For an adoption-driven pathway, compare usage logs or meter readings for a few pilot customers before and after they adopt.";
     else if (/impact/i.test(s.stage)) action += " Agree a baseline first: what would have happened without your product?";
-    rec("weak", [2, 3, 3, 3], "Test the weakest link",
+    rec(`R03.${k + 1}`, [2, 3, 3, 3], "Test the weakest link",
       `“${s.stage}” rests on an assumption only` + (s.assumption ? `: “${s.assumption}”` : "."),
       "Every claim further down the chain inherits this uncertainty. If the assumption fails, the environmental benefit does not happen, however well the technology works.",
-      action,
+      action, [stepAns(2, `${s.track} → ${s.stage}`, `evidence “${ev(s)}”`)],
       ["At ideation an untested assumption is normal; write the test down now so the first pilot can answer it.", null, null,
        "At this stage an untested assumption in the chain is what a due-diligence reviewer will find first."]);
   });
 
-  // The customer side of the chain (SIC: a good technology is not yet a
-  // viable product).
+  // R04 customer adoption not validated / R05 customer steps not marked
   const custSteps = stagesFlat.filter(s => s.change === "adoption" || s.change === "behaviour");
   if (stagesFlat.length && !custSteps.length && enabling) {
-    rec("mark_customer", [2, 2, 2, 2], "Mark the steps that depend on customers",
-      "No step in your pathway is marked as depending on customers, although your impact depends on adoption.",
+    rec("R05", [2, 2, 2, 2], "Mark the steps that depend on customers",
+      "Impact depends on adoption, but no pathway step is marked as depending on customers.",
       "The pathway then reads as if the technology alone produces the impact, which overstates what you control.",
-      "In step 2, mark where customers must buy the product or change what they do.");
-  } else if (custSteps.length && !custSteps.some(s => /^(Moderate|Strong)/.test(s.evidence || ""))) {
-    rec("customer_side", [2, 3, 3, 2], "Prove the customer side, not only the technology",
-      `${list(custSteps.map(s => s.stage))} ${custSteps.length === 1 ? "depends" : "depend"} on customers and ${custSteps.length === 1 ? "has" : "have"} no solid evidence yet.`,
-      "A product that works technically produces no impact if nobody adopts it or uses it as intended.",
-      "Get evidence from real customers: paid pilots, letters of intent, usage data" + (actor ? `, and observation of ${short(actor).replace(/\.$/, "")}` : "") + ".");
+      "In step 2, mark where customers must buy the product or change what they do.",
+      [stepAns(1, "Impact mechanism", "Enabling"), stepAns(2, "Steps that depend on customers", "none marked")]);
+  } else if (custSteps.length && !custSteps.some(s => /^(Moderate|Strong)/.test(ev(s)))) {
+    const behaviour = custSteps.some(s => s.change === "behaviour");
+    rec("R04", [2, 3, 3, 2], "Validate customer adoption",
+      `Impact relies on ${behaviour ? "behaviour change" : "customer adoption"}, but no customer evidence is documented.`,
+      "Without adoption, the environmental benefit may never materialise, however well the technology works.",
+      "Run a small pilot or customer interviews to validate the adoption assumptions: paid pilots, letters of intent, usage data" +
+        (actor ? `, and observation of ${short(actor).replace(/\.$/, "")}` : "") + ".",
+      custSteps.map(s => stepAns(2, `${s.stage} (${REF.DEPENDENCE_SHORT[s.change].toLowerCase()})`, `evidence “${ev(s)}”`)));
   }
 
-  // Pathway stages left empty.
+  // R06 pathway stages left empty
   const empty = stagesFlat.filter(s => !(s.description || "").trim());
   if (stagesFlat.length && empty.length) {
-    rec("pathway", [3, 3, 2, 2], "Complete the impact pathway",
-      `${empty.length} of ${stagesFlat.length} pathway stage${stagesFlat.length === 1 ? " is" : "s are"} not described (${list(empty.slice(0, 3).map(s => s.stage))}${empty.length > 3 ? ", …" : ""}).`,
+    rec("R06", [3, 3, 2, 2], "Complete the impact pathway",
+      `${empty.length} of ${stagesFlat.length} pathway stage${stagesFlat.length === 1 ? " is" : "s are"} not described.`,
       "A gap in the chain is the first place an investor or mentor will push, and indicators cannot be linked to a step that is not there.",
-      "Describe each missing stage in one or two sentences in step 2, with the assumption that links it to the next.");
+      "Describe each missing stage in one or two sentences in step 2, with the assumption that links it to the next.",
+      empty.slice(0, 4).map(s => stepAns(2, s.stage, "description empty")));
   }
 
-  // Indicators.
+  // Indicators
   const buckets = SCORING.groupByBucket(selected);
   const core = buckets[SCORING.BUCKET_CORE];
   const lvl = n => (unc[n] || {}).level;
+  const kindOf = n => REF.indicatorKind(n, selected[n]);
   if (!core.length) {
-    rec("core", [2, 3, 3, 3], "Choose a core indicator",
+    rec("R07", [2, 3, 3, 3], "Choose a core indicator",
       "There is no core indicator: nothing is both highly relevant and feasible to measure.",
       "Without one, the report has no way to show progress at the next review.",
-      "In step 3, select at least one indicator that is highly relevant to your pathway and at least moderately feasible.");
+      "In step 3, select at least one indicator that is highly relevant to your pathway and at least moderately feasible.",
+      [stepAns(3, "Core set", Object.keys(selected).length ? "empty (no indicator scored high relevance + at least medium feasibility)" : "no indicators selected")]);
   } else {
     const noBaseline = core.filter(([, e]) => !(e.current_value || "").toString().trim()).map(([n]) => n);
     if (noBaseline.length) {
-      rec("baseline", [1, 3, 3, 3], "Record a baseline",
+      rec("R08", [1, 3, 3, 3], "Record a baseline",
         `No current value is recorded for ${list(noBaseline.slice(0, 3))}${noBaseline.length > 3 ? " and others" : ""}.`,
         "Without a starting point, any later improvement is a claim nobody can check.",
         "Write down today's value, even if it is zero or a rough figure, and where it comes from.",
+        noBaseline.slice(0, 3).map(n => stepAns(3, n, "current value empty")),
         ["At ideation there may be nothing to measure yet; note how you would get the baseline once a pilot starts.", null, null, null]);
     }
-    const grounded = core.filter(([n]) => lvl(n) === "Measured");
-    const modelled = core.filter(([n]) => lvl(n) === "Modelled").map(([n]) => n);
-    const projected = core.filter(([n]) => lvl(n) === "Projected").map(([n]) => n);
-    if (!grounded.length && (modelled.length || projected.length)) {
-      const pick = modelled[0] || projected[0];
-      rec("measured", [1, 2, 3, 3], "Turn one claim into a measured one",
-        "None of your core claims is measured yet.",
-        "Reviewers discount modelled and projected figures; one measured claim is worth more than several projected ones.",
-        `Start with “${pick}”: name the data that would prove it, who collects it, and how often.`);
-    }
+  }
+  // R09 impact claim is projected, with no measured claim of the same kind
+  const projImpact = Object.keys(unc).filter(n => lvl(n) === "Projected" && ["outcome", "adoption"].includes(kindOf(n)));
+  const measuredImpact = Object.keys(unc).filter(n => lvl(n) === "Measured" && kindOf(n) === "outcome");
+  if (projImpact.length && !measuredImpact.length) {
+    const n = projImpact[0];
+    rec("R09", [1, 2, 3, 3], "Measure the projected impact",
+      `A projected impact claim (“${n}”) has no supporting operational measurement.`,
+      "This helps distinguish expected impact from observed impact; until then, reviewers will treat the figure as a forecast.",
+      "Identify the earliest feasible real-world measurement for it, and establish a baseline now so the first measurement can be compared.",
+      projImpact.slice(0, 3).map(x => stepAns(4, x, `labelled Projected (${REF.INDICATOR_KINDS[kindOf(x)].label.toLowerCase()})`))
+        .concat([stepAns(4, "Measured real-world outcome claims", "none")]));
+  } else if (core.length && !core.some(([n]) => lvl(n) === "Measured")) {
+    // R10 no core claim measured (when R09 did not already cover it)
+    const pick = core.map(([n]) => n).find(n => lvl(n) === "Modelled") || core[0][0];
+    rec("R10", [1, 2, 3, 3], "Turn one claim into a measured one",
+      "None of your core claims is measured yet.",
+      "Reviewers discount modelled and projected figures; one measured claim is worth more than several projected ones.",
+      `Start with “${pick}”: name the data that would prove it, who collects it, and how often.`,
+      core.slice(0, 3).map(([n]) => stepAns(4, n, `labelled ${lvl(n) || "unlabelled"}`)));
   }
   if (core.length && !core.some(([n, e]) => REF.INDICATOR_KINDS[REF.indicatorKind(n, e)]?.real)) {
-    rec("real_impact", [1, 2, 3, 3], "Measure real impact, not only the technology",
+    rec("R11", [1, 2, 3, 3], "Measure real impact, not only the technology",
       "Your core indicators describe the product or the company, not whether customers use it or anything changes.",
       "The report can then show that the technology works, but not that it has any environmental effect.",
-      "In step 3, add an indicator marked green, e.g. irrigation water saved per participating farm rather than sensors manufactured.");
+      "In step 3, add an indicator marked green, e.g. irrigation water saved per participating farm rather than sensors manufactured.",
+      core.slice(0, 3).map(([n]) => stepAns(3, n, (REF.INDICATOR_KINDS[kindOf(n)] || { label: "kind not set" }).label)));
   }
   const gapW = SCORING.allClaimGaps(selected, unc, pathway).filter(g => g.sev === "warning");
   if (gapW.length) {
     const first = gapW[0];
-    rec("claim_gaps", [2, 2, 3, 3], "Close the claim–evidence gaps",
+    rec("R12", [2, 2, 3, 3], "Close the claim–evidence gaps",
       `${gapW.length} claim–evidence gap(s), starting with “${first.name}”: ${first.msg}`,
       "A claim that says more than its evidence is how an honest startup ends up accused of greenwashing.",
       "Reword the claim or add the missing baseline, source or quality rating in step 4 before you present it.",
+      gapW.slice(0, 3).map(g => stepAns(4, g.name, g.msg.split(".")[0].toLowerCase())),
       [null, null, null, "At growth, claims reach investors, corporate buyers and consumers; under EU green-claims rules a mismatch can become a legal problem, not just a credibility one."]);
   }
   const asp = buckets[SCORING.BUCKET_ASPIRATIONAL].map(([n]) => n);
   if (asp.length) {
-    rec("aspirational", [1, 2, 2, 1], "Plan your future indicators",
+    rec("R13", [1, 2, 2, 1], "Plan your future indicators",
       `${list(asp.slice(0, 3))} ${asp.length === 1 ? "is" : "are"} relevant but not yet measurable.`,
       "Until it is measured, the most relevant part of your impact stays a projection.",
-      `Note what would make ${asp.length === 1 ? "it" : "each one"} measurable (a tool, a partner, budget, a pilot customer sharing data) and at which milestone you expect it.`);
+      `Note what would make ${asp.length === 1 ? "it" : "each one"} measurable (a tool, a partner, budget, a pilot customer sharing data) and at which milestone you expect it.`,
+      asp.slice(0, 3).map(n => stepAns(3, n, `relevance ${selected[n].relevance}, feasibility ${selected[n].feasibility}`)));
   }
 
-  // Impact-business alignment: commercial assumptions the impact needs.
+  // R15 impact-business alignment: unvalidated commercial assumptions,
+  // skipping those whose pathway step R03 already covers
   const align = SCORING.alignment(state);
-  // skip an assumption whose pathway step is already covered by a
-  // "test the weakest link" recommendation above
   const weakCovered = new Set(weak.slice(0, 2).map(s => s.stage));
   align.assumptions.filter(a => a.status !== "validated" && !(a.step && weakCovered.has(a.step))).slice(0, 3).forEach(a => {
-    rec("align_" + a.key, a.rel, a.title, a.gap, a.why, a.test);
+    rec(`R15.${a.key}`, a.rel, a.title, a.gap, a.why, a.test,
+      [`Step 5 · Alignment assumption “${a.text.replace(/\.$/, "")}”: ${(SCORING.ALIGN_STATUS.find(([k]) => k === a.status) || [, ""])[1].toLowerCase()}`].concat(a.basis || []));
   });
 
-  // Review milestone.
-  if (!state.next_review_milestone) {
-    rec("review", [1, 1, 1, 1], "Set the next review",
-      "No review milestone is set.",
-      "Without one, the assessment tends to be filed and forgotten while the business changes.",
-      "Pick the milestone at which you will update this assessment (step 5).");
+  // S01 strong evidence available: a claim worth showing off
+  const strong = Object.entries(unc).filter(([n, u]) => u.level === "Measured" && u.quality === "high" &&
+    (u.sources || "").trim() && (u.assumptions || "").trim() &&
+    !SCORING.claimGaps(n, u, selected[n], pathway).some(g => g.sev === "warning"));
+  if (strong.length) {
+    const [n, u] = strong[0];
+    rec("S01", [1, 2, 2, 3], "Prepare an evidence summary",
+      `Operational measurements and documented assumptions support a claim (“${n}”).`,
+      "This makes the claim easier for customers, accelerators and reviewers to evaluate, and sets the standard for your other claims.",
+      "Prepare a short, transparent evidence summary for it: scope, limitations, baseline and sources, ready to attach to a pitch or tender.",
+      strong.slice(0, 3).map(([x, v]) => stepAns(4, x, `Measured, quality High, sources: ${short(v.sources)}`)),
+      null, "strength");
   }
 
-  // highest priority first; ties keep the order above
-  actions.forEach((a, i) => { a._i = i; });
-  actions.sort((x, y) => (y.priority - x.priority) || (x._i - y._i));
+  // R16 review milestone
+  if (!state.next_review_milestone) {
+    rec("R16", [1, 1, 1, 1], "Set the next review",
+      "No review milestone is set.",
+      "Without one, the assessment tends to be filed and forgotten while the business changes.",
+      "Pick the milestone at which you will update this assessment (step 5).",
+      [stepAns(5, "Next review milestone", "not set")]);
+  }
+
+  // highest priority first; gaps before strengths of equal priority
+  actions.forEach((a, k) => { a._i = k; });
+  actions.sort((x, y) => (y.priority - x.priority) || ((x.type === "strength") - (y.type === "strength")) || (x._i - y._i));
   actions.forEach(a => { delete a._i; });
 
   // ---- Points to consider: prompts the team is free to ignore ------------
 
   if (types.length > 1) {
-    ask("Which customer comes first?",
+    ask("C01", "Which customer comes first?",
       `You sell to ${types.join(" and ")}. Have you decided which segment you will prove the impact with first? ` +
-      "Each one usually asks for different evidence, so one strong case beats several partial ones.");
+      "Each one usually asks for different evidence, so one strong case beats several partial ones.",
+      [stepAns(1, "Customer segment", types.join(" + "))]);
   }
   if (types.includes("B2B")) {
-    ask("Is your impact data a selling point?",
+    ask("C02", "Is your impact data a selling point?",
       "Have you considered whether your business customers need environmental data for their own sustainability reporting or supplier questionnaires? " +
-      "If your product can supply it, the impact claim becomes part of the sales argument, not just the pitch deck.");
+      "If your product can supply it, the impact claim becomes part of the sales argument, not just the pitch deck.",
+      [stepAns(1, "Customer segment", "includes B2B")]);
   }
   if (types.includes("B2C")) {
-    ask("How will you word claims to consumers?",
+    ask("C03", "How will you word claims to consumers?",
       "Since 27 September 2026, EU rules (Directive 2024/825) ban generic environmental claims such as “eco-friendly” or “climate neutral” towards consumers without proof of recognised excellent environmental performance. " +
-      "Have you checked that every public claim matches a measured or clearly labelled projected figure in this report?");
+      "Have you checked that every public claim matches a measured or clearly labelled projected figure in this report?",
+      [stepAns(1, "Customer segment", "includes B2C")]);
   }
   if (types.includes("B2G")) {
-    ask("What do public buyers ask for?",
+    ask("C04", "What do public buyers ask for?",
       "Have you considered which environmental criteria public tenders in your field use (e.g. green public procurement criteria) and whether your indicators match them? " +
-      "Expect long sales cycles, so plan the evidence early.");
+      "Expect long sales cycles, so plan the evidence early.",
+      [stepAns(1, "Customer segment", "includes B2G")]);
   }
   if (enabling && actor && buyer && !sameRole(actor, buyer)) {
-    ask("Is your evidence about the right people?",
+    ask("C05", "Is your evidence about the right people?",
       `The buyer (${short(buyer)}) is not the one whose behaviour must change (${short(actor)}). ` +
-      "Have you considered how you will show that those people actually change what they do? A signed contract or a sold licence is evidence of purchase, not of behaviour change.");
+      "Have you considered how you will show that those people actually change what they do? A signed contract or a sold licence is evidence of purchase, not of behaviour change.",
+      [stepAns(1, "Buyer", short(buyer)), stepAns(1, "Whose behaviour must change", short(actor))]);
   } else if (user && buyer && !sameRole(user, buyer)) {
-    ask("Do the users actually use it?",
+    ask("C06", "Do the users actually use it?",
       `The buyer (${short(buyer)}) and the day-to-day users (${short(user)}) are different. ` +
-      "Have you considered tracking active use, not only sales? Products bought by one person and ignored by another produce no impact.");
+      "Have you considered tracking active use, not only sales? Products bought by one person and ignored by another produce no impact.",
+      [stepAns(1, "Buyer", short(buyer)), stepAns(1, "User", short(user))]);
   } else if (enabling && !actor) {
-    ask("Who has to change their behaviour?",
+    ask("C07", "Who has to change their behaviour?",
       "Have you considered who actually has to do something differently: the person who buys the product, or someone else (an employee, a tenant, an end user)? " +
-      "If they differ, your adoption evidence has to come from them, not from the sale.");
+      "If they differ, your adoption evidence has to come from them, not from the sale.",
+      [stepAns(1, "Whose behaviour must change", "empty")]);
   }
   if (revenue.includes("subscription") || revenue.includes("hardware_sub")) {
-    ask("Does churn also cut your impact?",
+    ask("C08", "Does churn also cut your impact?",
       "With a subscription, a customer who cancels stops producing impact. Have you considered reporting active, retained customers rather than total sign-ups? " +
-      "Your retention figure then doubles as adoption evidence.");
+      "Your retention figure then doubles as adoption evidence.",
+      [stepAns(1, "Revenue model", "subscription")]);
   }
   if (revenue.includes("sale")) {
-    ask("What happens after the sale?",
-      "With a one-off sale you lose sight of how the product is used. Have you considered how you will get usage data afterwards (a data-sharing clause, service visits, a connected device, a follow-up survey)?");
+    ask("C09", "What happens after the sale?",
+      "With a one-off sale you lose sight of how the product is used. Have you considered how you will get usage data afterwards (a data-sharing clause, service visits, a connected device, a follow-up survey)?",
+      [stepAns(1, "Revenue model", "one-off sale")]);
   }
   if (revenue.includes("licence")) {
-    ask("Can you see how licensees deploy it?",
-      "With licensing, the impact happens at the licensee. Have you considered a contract clause that gives you access to deployment and usage data?");
+    ask("C10", "Can you see how licensees deploy it?",
+      "With licensing, the impact happens at the licensee. Have you considered a contract clause that gives you access to deployment and usage data?",
+      [stepAns(1, "Revenue model", "licensing")]);
   }
   if (revenue.includes("usage")) {
-    ask("Is your billing data also impact data?",
-      "With pay-per-use, every billed use is recorded. Have you considered using those records directly as measured adoption evidence?");
+    ask("C11", "Is your billing data also impact data?",
+      "With pay-per-use, every billed use is recorded. Have you considered using those records directly as measured adoption evidence?",
+      [stepAns(1, "Revenue model", "pay per use")]);
   }
   if (enabling && drivers.includes("cost")) {
-    ask("Can one dataset show both savings?",
+    ask("C12", "Can one dataset show both savings?",
       "Your customers save money through the same mechanism that saves the environment. Have you considered tracking both from the same data " +
-      "(e.g. the water bill and the m³ saved)? It makes the environmental claim far harder to dispute.");
+      "(e.g. the water bill and the m³ saved)? It makes the environmental claim far harder to dispute.",
+      [stepAns(1, "Impact mechanism", "Enabling"), stepAns(1, "Why customers buy", "it saves them money")]);
   }
   if ((enabling || state.orientation === "Secondary") && !/rebound/.test(allText)) {
-    ask("What about rebound effects?",
+    ask("C13", "What about rebound effects?",
       "Have you considered whether efficiency gains could lead customers to use more (more hectares irrigated, more trips made)? " +
-      "Naming the risk yourself is more credible than having a reviewer raise it.");
+      "Naming the risk yourself is more credible than having a reviewer raise it.",
+      [stepAns(1, "Impact mechanism / orientation", `${state.mechanism} / ${state.orientation}`), "Steps 2–4 · the word “rebound” does not appear"]);
   }
   if (direct && !/end.of.life|recycl|disposal|compost/.test(allText)) {
-    ask("What happens at end of life?",
-      "Have you considered the whole life cycle, not only the use phase? Production and end-of-life are often where most of the footprint sits; a screening LCA can show you where.");
+    ask("C14", "What happens at end of life?",
+      "Have you considered the whole life cycle, not only the use phase? Production and end-of-life are often where most of the footprint sits; a screening LCA can show you where.",
+      [stepAns(1, "Impact mechanism", "Direct"), "Steps 2–4 · no mention of end of life, recycling or disposal"]);
   }
   if (state.orientation === "Secondary") {
-    ask("Do you know your own footprint?",
-      "As a commercially driven startup, your operational footprint may matter as much as the product's effect. Have you tried the quick Scope 1 + 2 estimator in step 3?");
+    ask("C15", "Do you know your own footprint?",
+      "As a commercially driven startup, your operational footprint may matter as much as the product's effect. Have you tried the quick Scope 1 + 2 estimator in step 3?",
+      [stepAns(1, "Value orientation", "Secondary")]);
   }
   if (state.stage === "Early commercialization" || state.stage === "Growth") {
-    ask("Is it time for external verification?",
-      "Have you considered an independent check (e.g. an LCA or a third-party review of your main claim) before the next funding round or a large customer contract?");
+    ask("C16", "Is it time for external verification?",
+      "Have you considered an independent check (e.g. an LCA or a third-party review of your main claim) before the next funding round or a large customer contract?",
+      [stepAns(1, "Development stage", state.stage)]);
   }
   const projectedN = Object.values(unc).filter(u => u.level === "Projected").length;
   if (projectedN && projectedN >= Object.keys(unc).length / 2) {
-    ask("How will investors read this?",
-      "Most of your claims are projected. Investors usually discount those heavily. Have you considered which single claim you most want measured by your next funding conversation?");
+    ask("C17", "How will investors read this?",
+      "Most of your claims are projected. Investors usually discount those heavily. Have you considered which single claim you most want measured by your next funding conversation?",
+      [stepAns(4, "Projected claims", `${projectedN} of ${Object.keys(unc).length}`)]);
   }
 
-  return { actions: actions.slice(0, SCORING.MAX_ACTIONS), more: Math.max(0, actions.length - SCORING.MAX_ACTIONS),
-    consider: consider.slice(0, SCORING.MAX_CONSIDER) };
+  const strengths = actions.filter(a => a.type === "strength");
+  const gaps = actions.filter(a => a.type !== "strength");
+  return { actions: gaps.slice(0, SCORING.MAX_ACTIONS), more: Math.max(0, gaps.length - SCORING.MAX_ACTIONS),
+    hidden: gaps.slice(SCORING.MAX_ACTIONS), strengths,
+    consider: consider.slice(0, SCORING.MAX_CONSIDER), fired: [...fired] };
 };
