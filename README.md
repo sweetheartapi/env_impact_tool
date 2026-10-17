@@ -51,11 +51,27 @@ Central Bohemian Innovation Centre (SIC):
   "Claims and evidence at a glance" table sits at the top of step 4 and in
   section 4 of the report; gaps also feed the integrity checks and next
   steps. Word tables now keep their column widths.
+- **Impact–business alignment (step 5, report section 6).** Sets the
+  customer value next to the environmental value, says whether the
+  customer's reason to buy is tied to the environmental benefit, and lists
+  only the commercial assumptions the benefit depends on (customers find it
+  worth paying for, use turns into behaviour change, the saving and the
+  impact come from the same change, rebound, retention, the adoption a
+  projection assumes). The team marks each as not checked / some evidence /
+  validated. Not a viability score and not business due diligence.
+- **Structured recommendations (step 5, report section 7).** Each
+  recommendation states the evidence gap, what it means, the recommended
+  action, and why it matters at the current development stage; they are
+  prioritised (high / medium / low) by stage. Unvalidated alignment
+  assumptions become recommendations too. "Points to consider" stay.
+  Report sections are now: 1 profile, 2 pathway, 3 indicators, 4 claims &
+  evidence, 5 integrity checks, 6 impact–business alignment,
+  7 recommendations, 8 review plan.
 - Save files gain optional keys: `customer_types`, `revenue_models`,
   `customer_profile` (the buyer), `customer_user`, `behaviour_actor`,
   `value_drivers`, `customer_value`, `custom_kinds`, `change` on each pathway
   stage, `kind` on each selected indicator, and `quality`, `baseline`,
-  `sources` on each claim.
+  `sources` on each claim, and `alignment`.
   Older files load without them.
 
 

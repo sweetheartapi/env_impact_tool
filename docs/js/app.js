@@ -44,6 +44,7 @@
     assessment_version: 1,
     next_review_milestone: "",
     review_notes: "",
+    alignment: {},        // impact-business alignment: key -> {status, note}
     estimator: {},
   });
 
@@ -91,7 +92,7 @@
     if (!["Primary", "Secondary"].includes(s.orientation)) s.orientation = null;
     s.is_hybrid = !!s.is_hybrid && !!s.mechanism;
     s.secondary_mechanism = s.is_hybrid ? (s.mechanism === "Direct" ? "Enabling" : "Direct") : null;
-    ["pathway", "selected_indicators", "custom_indicators", "custom_kinds", "uncertainty", "estimator"]
+    ["pathway", "selected_indicators", "custom_indicators", "custom_kinds", "uncertainty", "estimator", "alignment"]
       .forEach(k => { if (!isObj(s[k])) s[k] = {}; });
     Object.keys(s.custom_indicators).forEach(k => {
       if (!Array.isArray(s.custom_indicators[k])) s.custom_indicators[k] = [];
@@ -746,7 +747,13 @@
     ensurePathway();
     const ns = SCORING.nextSteps(S);
     const actions = ns.actions.length
-      ? `<ol class="next-list">${ns.actions.map(a => `<li><b>${h(a.title)}.</b> ${h(a.text)}</li>`).join("")}</ol>`
+      ? `<ol class="rec-list">${ns.actions.map(a => `<li class="rec p${a.priority}">
+          <div class="rec-head"><span class="prio">${h(SCORING.PRIORITY_LABEL[a.priority])} priority</span><b>${h(a.title)}</b></div>
+          <dl><dt>Evidence gap</dt><dd>${h(a.gap)}</dd>
+            <dt>What it means</dt><dd>${h(a.implication)}</dd>
+            <dt>Recommended action</dt><dd>${h(a.action)}</dd>
+            <dt>Why now (${h(S.stage)})</dt><dd>${h(a.why_now)}</dd></dl></li>`).join("")}</ol>` +
+        (ns.more ? `<p class="caption">${ns.more} lower-priority recommendation(s) not shown. Resolve the ones above first.</p>` : "")
       : alert("ok", "No open gaps found. Keep the assessment current at your next review milestone.");
     const consider = ns.consider.length
       ? `<div class="consider"><h3>Points to consider</h3><p class="caption" style="margin:0 0 .5rem">Questions worth a thought. Ignore any that do not apply.</p>
@@ -754,21 +761,49 @@
     return actions + consider;
   }
 
+  // Impact-business alignment: where the environmental benefit depends on
+  // commercial assumptions. Not a viability score.
+  function alignmentHTML() {
+    ensurePathway();
+    const al = SCORING.alignment(S);
+    const VERDICT = { aligned: ["ok", "Aligned"], partly: ["info", "Partly aligned"], independent: ["warning", "Not linked"], unclear: ["warning", "Unclear"] };
+    const [sev, vlabel] = VERDICT[al.verdict];
+    const items = al.assumptions.map(a => {
+      const id = "al-" + a.key;
+      const attrs = k => `data-f="align" data-key="${a.key}" data-k="${k}"`;
+      return `<li class="al-item st-${a.status}"><div class="al-top"><span class="al-ic" aria-hidden="true">${a.status === "validated" ? "✓" : "!"}</span>
+          <div><b>${h(a.text)}</b>${a.step ? `<span class="caption" style="display:block">Pathway step: ${h(a.step)}</span>` : ""}
+          <p class="al-why">${h(a.why)}</p><p class="al-test"><b>How to check:</b> ${h(a.test)}</p></div></div>
+        <div class="al-mark"><div class="field" style="margin:0"><label for="${id}-s">Status</label>${selectHTML(`${id}-s`, attrs("status"), SCORING.ALIGN_STATUS, a.status)}</div>
+          <div class="field" style="margin:0"><label for="${id}-n">Evidence or note <span class="hint">(optional)</span></label><input type="text" id="${id}-n" ${attrs("note")} value="${h(a.note)}" placeholder="e.g. 5 of 8 pilot farms agreed to a paid second season"></div></div></li>`;
+    }).join("");
+    return `<div class="panel align-panel"><h2>Impact–business alignment</h2>
+      <p class="caption" style="margin:.1rem 0 .8rem">Where your environmental benefit depends on commercial assumptions. This is not a commercial viability score and not business due diligence: commercial questions appear here only where they decide whether the environmental benefit happens or can be evidenced.</p>
+      <div class="al-values"><div><span>Customer value</span><p>${al.customer_value ? h(al.customer_value) : "<i>Not described yet (step 1)</i>"}</p></div>
+        <div><span>Environmental value</span><p>${al.env_value ? h(al.env_value) : "<i>Impact step not described yet (step 2)</i>"}</p></div></div>
+      ${alert(sev, `<b>${vlabel}.</b> ${h(al.verdict_text)}`)}
+      ${al.assumptions.length ? `<h3 class="sub-h">Critical assumptions</h3><ul class="al-list">${items}</ul>`
+        : `<p class="caption">No commercial assumption on the impact path was found. Fill in the customer section (step 1) and mark the customer steps in step 2 to see them.</p>`}
+    </div>`;
+  }
+
+
   function step5() {
     ensurePathway();
     const checks = SCORING.integrityChecks(S.selected_indicators, S.uncertainty, S.pathway);
     const checksHTML = checks.map(([sev, msg]) => alert(sev, h(msg))).join("");
 
     return hero(5, "Review, report & export",
-      "See your recommended next steps, run the integrity checks, set the next review milestone and export your report. This assessment is designed for updating, not for completion.", false) +
+      "Check where your impact depends on commercial assumptions, work through the prioritised recommendations, run the integrity checks and export your report. This assessment is designed for updating, not for completion.", false) +
       `<div class="cols"><div>
         <div class="panel"><h2>Review &amp; updating plan</h2>
           <div class="grid2 grid-review" style="margin-top:.8rem">
             <div class="field"><label for="milestone">Next review milestone</label>${selectHTML("milestone", 'data-f="next_review_milestone"', REF.REVIEW_MILESTONES, S.next_review_milestone, "Select a milestone…")}</div>
             <div class="field"><label for="review_notes">Notes for the next review <span class="hint">(optional)</span></label><input type="text" id="review_notes" data-f="review_notes" value="${h(S.review_notes)}"></div>
           </div></div>
-        <h2 style="font-size:1.1rem;margin:1.4rem 0 .3rem">Next steps</h2>
-        <p class="caption" style="margin:0 0 .7rem">Drawn from the gaps in this assessment, most important first. They also appear at the end of the report.</p>
+        ${alignmentHTML()}
+        <h2 style="font-size:1.1rem;margin:1.4rem 0 .3rem">Recommendations</h2>
+        <p class="caption" style="margin:0 0 .7rem">Each one explains the evidence gap, what it means, the action, and why it matters at your current stage (${h(S.stage)}). Highest priority first. They also appear in the report.</p>
         ${live("next", () => nextStepsHTML())}
         <h2 style="font-size:1.1rem;margin:1.4rem 0 .7rem">Integrity checks</h2>
         ${checksHTML}
@@ -949,6 +984,12 @@
         return el.type === "radio";
       }
       case "est": S.estimator[el.dataset.src] = val; return false;
+      case "align": {
+        const m = S.alignment[el.dataset.key] = S.alignment[el.dataset.key] || {};
+        m[el.dataset.k] = val;
+        // a status change reshuffles the recommendations; the note does not
+        return el.dataset.k === "status";
+      }
     }
     return false;
   }

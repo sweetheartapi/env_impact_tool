@@ -66,6 +66,7 @@ REPORT.assemble = function (state) {
         gaps: SCORING.claimGaps(n, u, e, state.pathway) };
     }),
     next_steps: SCORING.nextSteps(state),
+    alignment: SCORING.alignment(state),
     references,
     stage_note: REF.STAGE_GUIDANCE[state.stage].note,
   };
@@ -104,6 +105,10 @@ const kindReal = (n, e) => !!(REF.INDICATOR_KINDS[REF.indicatorKind(n, e)] || {}
 const qualityLabel = q => (REF.EVIDENCE_QUALITY.find(([k]) => k === (q || "")) || ["", "Not assessed yet"])[1];
 const gapCount = row => row.gaps.filter(g => g.sev === "warning").length;
 
+const ALIGN_VERDICT = { aligned: "Aligned", partly: "Partly aligned", independent: "Not linked", unclear: "Unclear" };
+const alignStatus = k => (SCORING.ALIGN_STATUS.find(([v]) => v === k) || ["", "Not checked yet"])[1];
+const ALIGN_SCOPE = "Where the environmental benefit depends on commercial assumptions. Not a commercial viability score and not business due diligence: commercial questions appear only where they decide whether the environmental benefit happens or can be evidenced.";
+
 const INDICATOR_FIELDS = [["unit", "Unit"], ["current_value", "Current value"], ["target", "Target"],
   ["frequency", "Measured"], ["data_source", "Data source"], ["pathway_link", "Evidences pathway stage"]];
 
@@ -128,7 +133,8 @@ REPORT.toMarkdown = function (r) {
   L.push(`- **Core indicator set:** ${core.length} indicator(s)` + (core.length ? ": " + core.map(([n]) => n).join("; ") : ""));
   if (Object.keys(counts).length) L.push(`- **Evidence base:** ${evidenceLine(counts)}`);
   L.push(`- **Integrity checks:** ${warn.length} warning(s)` + (warn.length ? ". See Section 5" : ""));
-  if (r.next_steps.actions.length) L.push(`- **Next steps:** ${r.next_steps.actions.length} recommended. See Section 6`);
+  if (r.next_steps.actions.length) L.push(`- **Next steps:** ${r.next_steps.actions.length} recommended. See Section 7`);
+  if (r.alignment.applies) L.push(`- **Impact–business alignment:** ${ALIGN_VERDICT[r.alignment.verdict]}; ${r.alignment.assumptions.filter(a => a.status !== "validated").length} of ${r.alignment.assumptions.length} critical commercial assumptions not yet validated. See Section 6`);
   if (m.next_review_milestone) L.push(`- **Next scheduled review:** ${m.next_review_milestone}`);
   L.push("");
 
@@ -204,10 +210,32 @@ REPORT.toMarkdown = function (r) {
   r.integrity_checks.forEach(([s, msg]) => L.push(`- ${sym[s]} ${msg}`));
   L.push("");
 
-  L.push("## 6. Next Steps & Points to Consider");
+  const al = r.alignment;
+  L.push("## 6. Impact–Business Alignment");
+  L.push(`_${ALIGN_SCOPE}_\n`);
+  L.push(`- **Customer value:** ${al.customer_value || "_(not described)_"}`);
+  L.push(`- **Environmental value:** ${al.env_value || "_(not described)_"}`);
+  L.push(`- **Alignment:** ${ALIGN_VERDICT[al.verdict]}. ${al.verdict_text}\n`);
+  if (al.assumptions.length) {
+    L.push("**Critical assumptions**");
+    al.assumptions.forEach(a => {
+      L.push(`- **${a.text}** _(${alignStatus(a.status)})_` + (a.note ? ` — ${a.note}` : ""));
+      L.push(`  - Why it matters: ${a.why}`);
+      L.push(`  - How to check: ${a.test}`);
+    });
+  }
+  L.push("");
+
+  L.push("## 7. Recommendations & Points to Consider");
   if (r.next_steps.actions.length) {
-    L.push("**Recommended next steps**");
-    r.next_steps.actions.forEach((a, i) => L.push(`${i + 1}. **${a.title}.** ${a.text}`));
+    r.next_steps.actions.forEach((a, i) => {
+      L.push(`### ${i + 1}. ${a.title} (${SCORING.PRIORITY_LABEL[a.priority]} priority)`);
+      L.push(`- **Evidence gap:** ${a.gap}`);
+      L.push(`- **What it means:** ${a.implication}`);
+      L.push(`- **Recommended action:** ${a.action}`);
+      L.push(`- **Why now (${r.meta.stage}):** ${a.why_now}`);
+    });
+    if (r.next_steps.more) L.push(`\n_${r.next_steps.more} lower-priority recommendation(s) not listed._`);
   } else L.push("_No open gaps found._");
   if (r.next_steps.consider.length) {
     L.push("\n**Points to consider** (questions worth a thought; ignore any that do not apply)");
@@ -215,7 +243,7 @@ REPORT.toMarkdown = function (r) {
   }
   L.push("");
 
-  L.push("## 7. Review & Updating Plan");
+  L.push("## 8. Review & Updating Plan");
   L.push("This assessment is designed for updating, not for completion. It should be revisited at defined milestones rather than filed as a one-time exercise.");
   L.push(`- **Next review milestone:** ${m.next_review_milestone || "_(not set)_"}`);
   if (m.review_notes) L.push(`- **Notes:** ${m.review_notes}`);
@@ -250,7 +278,7 @@ ul { padding-left: 1.3rem; } li { margin: .25rem 0; }
 .badge { display: inline-block; padding: .1rem .55rem; border-radius: 1rem; font-size: .8rem;
          font-family: Arial, sans-serif; color: #fff; vertical-align: middle; }
 .b-Measured { background: #2e6b4f; } .b-Modelled { background: #b8860b; } .b-Projected { background: #8a5a9e; }
-.b-q { background: #5a6b62; }
+.b-q { background: #5a6b62; } .b-hi { background: #a33; }
 table.claims { border-collapse: collapse; width: 100%; font-size: .88rem; margin: .5rem 0 1rem; font-family: Arial, sans-serif; }
 table.claims th, table.claims td { border: 1px solid #cfe0d6; padding: .35rem .5rem; text-align: left; vertical-align: top; }
 table.claims th { background: #2e6b4f; color: #fff; }
@@ -281,7 +309,8 @@ REPORT.toHtmlBody = function (r) {
     `<b>Evidence base:</b> ${esc(evidenceLine(levelCounts(r)))}`,
     `<b>Integrity checks:</b> ${warnN} warning(s)`,
   ].concat(r.customer.type_label ? [`<b>Customer:</b> ${esc(r.customer.type_label)}`] : [],
-    r.next_steps.actions.length ? [`<b>Next steps:</b> ${r.next_steps.actions.length} recommended (Section 6)`] : [], [
+    r.next_steps.actions.length ? [`<b>Recommendations:</b> ${r.next_steps.actions.length} (Section 7)`] : [],
+    r.alignment.applies ? [`<b>Impact–business alignment:</b> ${ALIGN_VERDICT[r.alignment.verdict]}; ${r.alignment.assumptions.filter(a => a.status !== "validated").length} of ${r.alignment.assumptions.length} critical assumptions not yet validated (Section 6)`] : [], [
     `<b>Next scheduled review:</b> ${esc(m.next_review_milestone) || "(not set)"}`,
   ])));
 
@@ -354,17 +383,32 @@ REPORT.toHtmlBody = function (r) {
   const cl = { warning: "warn", ok: "ok", info: "info" }, sym = { warning: "⚠", ok: "✔", info: "ℹ" };
   P.push(li(r.integrity_checks.map(([s, msg]) => `<span class="${cl[s]}">${sym[s]} ${esc(msg)}</span>`)));
 
-  P.push("<h2>6. Next Steps &amp; Points to Consider</h2>");
-  P.push("<h3>Recommended next steps</h3>");
-  P.push(r.next_steps.actions.length
-    ? "<ol>" + r.next_steps.actions.map(a => `<li><b>${esc(a.title)}.</b> ${esc(a.text)}</li>`).join("") + "</ol>"
-    : "<p><i>No open gaps found.</i></p>");
+  const alH = r.alignment;
+  P.push("<h2>6. Impact–Business Alignment</h2>");
+  P.push(`<p class="meta">${esc(ALIGN_SCOPE)}</p>`);
+  P.push(`<table class="claims"><tr><th>Customer value</th><th>Environmental value</th></tr><tr><td>${esc(alH.customer_value || "(not described)")}</td><td>${esc(alH.env_value || "(not described)")}</td></tr></table>`);
+  P.push(`<p><b>Alignment: ${esc(ALIGN_VERDICT[alH.verdict])}.</b> ${esc(alH.verdict_text)}</p>`);
+  if (alH.assumptions.length) {
+    P.push("<h3>Critical assumptions</h3>");
+    P.push(li(alH.assumptions.map(a => `<b>${esc(a.text)}</b> <span class="badge ${a.status === "validated" ? "b-Measured" : a.status === "some" ? "b-Modelled" : "b-q"}">${esc(alignStatus(a.status))}</span>` +
+      (a.note ? `<br><i>${esc(a.note)}</i>` : "") + `<br>Why it matters: ${esc(a.why)}<br>How to check: ${esc(a.test)}`)));
+  }
+
+  P.push("<h2>7. Recommendations &amp; Points to Consider</h2>");
+  if (r.next_steps.actions.length) {
+    r.next_steps.actions.forEach((a, i) => {
+      P.push(`<h3>${i + 1}. ${esc(a.title)} <span class="badge ${a.priority === 3 ? "b-hi" : a.priority === 2 ? "b-Modelled" : "b-q"}">${esc(SCORING.PRIORITY_LABEL[a.priority])} priority</span></h3>`);
+      P.push(li([`<b>Evidence gap:</b> ${esc(a.gap)}`, `<b>What it means:</b> ${esc(a.implication)}`,
+        `<b>Recommended action:</b> ${esc(a.action)}`, `<b>Why now (${esc(r.meta.stage)}):</b> ${esc(a.why_now)}`]));
+    });
+    if (r.next_steps.more) P.push(`<p class="meta">${r.next_steps.more} lower-priority recommendation(s) not listed.</p>`);
+  } else P.push("<p><i>No open gaps found.</i></p>");
   if (r.next_steps.consider.length) {
     P.push("<h3>Points to consider</h3><p class=\"meta\">Questions worth a thought. Ignore any that do not apply.</p>");
     P.push(li(r.next_steps.consider.map(cq => `<b>${esc(cq.title)}</b> ${esc(cq.text)}`)));
   }
 
-  P.push("<h2>7. Review &amp; Updating Plan</h2>");
+  P.push("<h2>8. Review &amp; Updating Plan</h2>");
   P.push("<p>This assessment is designed for updating, not for completion; it should be revisited at defined milestones rather than filed as a one-time exercise.</p>");
   P.push(li([`<b>Next review milestone:</b> ${esc(m.next_review_milestone) || "(not set)"}`]
     .concat(m.review_notes ? [`<b>Notes:</b> ${esc(m.review_notes)}`] : [])));
@@ -454,7 +498,8 @@ REPORT.toDocx = async function (r, extras = {}) {
     `Evidence base: ${evidenceLine(levelCounts(r))}`,
     `Integrity checks: ${warnN} warning(s)` + (warnN ? " — see Section 5" : ""),
     ...(r.customer.type_label ? [`Customer: ${r.customer.type_label}`] : []),
-    ...(r.next_steps.actions.length ? [`Next steps: ${r.next_steps.actions.length} recommended — see Section 6`] : []),
+    ...(r.next_steps.actions.length ? [`Recommendations: ${r.next_steps.actions.length} — see Section 7`] : []),
+    ...(r.alignment.applies ? [`Impact–business alignment: ${ALIGN_VERDICT[r.alignment.verdict]}; ${r.alignment.assumptions.filter(a => a.status !== "validated").length} of ${r.alignment.assumptions.length} critical assumptions not yet validated — see Section 6`] : []),
     `Next scheduled review: ${m.next_review_milestone || "(not set)"}`,
   ].forEach(t => children.push(bullet(t)));
 
@@ -588,14 +633,45 @@ REPORT.toDocx = async function (r, extras = {}) {
   const chkSym = { warning: "⚠", info: "ℹ", ok: "✓" };
   r.integrity_checks.forEach(([s, msg]) => children.push(bullet([new TextRun({ text: `${chkSym[s]}  ${msg}`, color: chkColor[s] })])));
 
-  // Next steps & points to consider
-  children.push(h("6. Next Steps & Points to Consider", HeadingLevel.HEADING_1));
-  children.push(h("Recommended next steps", HeadingLevel.HEADING_2));
+  // Impact-business alignment
+  const alD = r.alignment;
+  children.push(h("6. Impact–Business Alignment", HeadingLevel.HEADING_1));
+  children.push(new Paragraph({ children: [new TextRun({ text: ALIGN_SCOPE, italics: true, size: 19, color: DOCX_C.grey })] }));
+  children.push(new Table({
+    width: { size: TABLE_TW, type: WidthType.DXA }, columnWidths: twips([50, 50]), layout: TableLayoutType.FIXED,
+    rows: [
+      new TableRow({ tableHeader: true, children: ["Customer value", "Environmental value"].map(t => cell(t, { bold: true, fill: DOCX_C.green, color: "FFFFFF", width: 50 })) }),
+      new TableRow({ children: [alD.customer_value || "(not described)", alD.env_value || "(not described)"].map(t => cell(t, { width: 50 })) }),
+    ],
+  }));
+  children.push(new Paragraph({ spacing: { before: 160 }, children: [new TextRun({ text: `Alignment: ${ALIGN_VERDICT[alD.verdict]}. `, bold: true }), new TextRun(alD.verdict_text)] }));
+  if (alD.assumptions.length) {
+    children.push(h("Critical assumptions", HeadingLevel.HEADING_2));
+    const stColor = { validated: DOCX_C.green, some: DOCX_C.gold, unchecked: "D9661F" };
+    alD.assumptions.forEach(a => {
+      children.push(new Paragraph({ spacing: { before: 120 }, children: [
+        new TextRun({ text: a.status === "validated" ? "✓  " : "!  ", bold: true, color: stColor[a.status] }),
+        new TextRun({ text: a.text, bold: true }),
+        new TextRun({ text: `  [${alignStatus(a.status).toUpperCase()}]`, bold: true, color: stColor[a.status], size: 18 })] }));
+      if (a.note) children.push(new Paragraph({ indent: { left: 360 }, children: [new TextRun({ text: a.note, italics: true })] }));
+      children.push(new Paragraph({ indent: { left: 360 }, children: [new TextRun({ text: "Why it matters: ", bold: true }), new TextRun(a.why)] }));
+      children.push(new Paragraph({ indent: { left: 360 }, children: [new TextRun({ text: "How to check: ", bold: true }), new TextRun(a.test)] }));
+    });
+  }
+
+  // Recommendations & points to consider
+  children.push(h("7. Recommendations & Points to Consider", HeadingLevel.HEADING_1));
   if (!r.next_steps.actions.length) children.push(new Paragraph("No open gaps found."));
-  r.next_steps.actions.forEach((a, i) => children.push(new Paragraph({
-    indent: { left: 360, hanging: 360 },
-    children: [new TextRun({ text: `${i + 1}.  ${a.title}. `, bold: true, color: DOCX_C.green }), new TextRun(a.text)],
-  })));
+  const prColor = { 3: DOCX_C.red, 2: DOCX_C.gold, 1: DOCX_C.grey };
+  r.next_steps.actions.forEach((a, i) => {
+    children.push(new Paragraph({
+      heading: HeadingLevel.HEADING_3,
+      children: [new TextRun(`${i + 1}. ${a.title}`), new TextRun({ text: `  [${SCORING.PRIORITY_LABEL[a.priority].toUpperCase()} PRIORITY]`, bold: true, color: prColor[a.priority] })],
+    }));
+    [["Evidence gap: ", a.gap], ["What it means: ", a.implication], ["Recommended action: ", a.action], [`Why now (${m.stage}): `, a.why_now]]
+      .forEach(([k, v]) => children.push(new Paragraph({ indent: { left: 360 }, children: [new TextRun({ text: k, bold: true }), new TextRun(v)] })));
+  });
+  if (r.next_steps.more) children.push(new Paragraph({ children: [new TextRun({ text: `${r.next_steps.more} lower-priority recommendation(s) not listed.`, italics: true, color: DOCX_C.grey })] }));
   if (r.next_steps.consider.length) {
     children.push(h("Points to consider", HeadingLevel.HEADING_2));
     children.push(new Paragraph({ children: [new TextRun({ text: "Questions worth a thought. Ignore any that do not apply.", italics: true, size: 19, color: DOCX_C.grey })] }));
@@ -603,7 +679,7 @@ REPORT.toDocx = async function (r, extras = {}) {
   }
 
   // Review plan
-  children.push(h("7. Review & Updating Plan", HeadingLevel.HEADING_1));
+  children.push(h("8. Review & Updating Plan", HeadingLevel.HEADING_1));
   children.push(new Paragraph("This assessment is designed for updating, not for completion: it should be revisited at defined milestones rather than filed as a one-time exercise."));
   children.push(bullet(`Next review milestone: ${m.next_review_milestone || "(not set)"}`));
   if (m.review_notes) children.push(bullet(`Notes: ${m.review_notes}`));
@@ -662,7 +738,7 @@ REPORT.PERSISTED_KEYS = [
   "mechanism", "orientation", "is_hybrid", "secondary_mechanism",
   "pathway", "weakest_links",
   "selected_indicators", "custom_indicators", "custom_kinds", "uncertainty",
-  "assessment_version", "next_review_milestone", "review_notes",
+  "assessment_version", "next_review_milestone", "review_notes", "alignment",
 ];
 
 REPORT.exportState = function (state) {
