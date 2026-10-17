@@ -39,6 +39,7 @@
     weakest_links: "",
     selected_indicators: {},
     custom_indicators: {},
+    custom_kinds: {},     // custom indicator name -> what it measures
     uncertainty: {},
     assessment_version: 1,
     next_review_milestone: "",
@@ -90,7 +91,7 @@
     if (!["Primary", "Secondary"].includes(s.orientation)) s.orientation = null;
     s.is_hybrid = !!s.is_hybrid && !!s.mechanism;
     s.secondary_mechanism = s.is_hybrid ? (s.mechanism === "Direct" ? "Enabling" : "Direct") : null;
-    ["pathway", "selected_indicators", "custom_indicators", "uncertainty", "estimator"]
+    ["pathway", "selected_indicators", "custom_indicators", "custom_kinds", "uncertainty", "estimator"]
       .forEach(k => { if (!isObj(s[k])) s[k] = {}; });
     Object.keys(s.custom_indicators).forEach(k => {
       if (!Array.isArray(s.custom_indicators[k])) s.custom_indicators[k] = [];
@@ -493,6 +494,7 @@
         return card("Indicator set", kv([
           ["Selected", String(Object.keys(S.selected_indicators).length)],
           ["Core set", `${b[SCORING.BUCKET_CORE].length} (aim for 3–5)`],
+          ["Core showing real impact", String(b[SCORING.BUCKET_CORE].filter(([n, e]) => (REF.INDICATOR_KINDS[REF.indicatorKind(n, e)] || {}).real).length)],
           ["Aspirational", String(b[SCORING.BUCKET_ASPIRATIONAL].length)],
           ["Excluded", String(b[SCORING.BUCKET_EXCLUDED].length)],
         ]), "🎯") + card("Why this matters", "<p>Metrics that are easy to report but not material are how greenwashing happens by accident. The scoring excludes them by design.</p>", "❝", true);
@@ -500,12 +502,22 @@
       tip("Fewer, well-evidenced indicators beat a long list. Link each core indicator to the pathway stage it proves.");
   }
 
+  const kindTag = k => {
+    const kd = REF.INDICATOR_KINDS[k];
+    if (!kd) return `<span class="kind-tag k-none">Kind not set</span>`;
+    return `<span class="kind-tag k-${k}${kd.real ? " real" : ""}" title="${h(kd.help)}">${kd.real ? "★ " : ""}${h(kd.short)}</span>`;
+  };
+
+  const inBank = name => Object.values(REF.INDICATOR_BANK).some(rows => rows.some(r => r[0] === name));
+
   function tabSelect() {
-    let out = "";
+    let out = `<div class="kind-legend"><b>Prefer indicators that show real impact.</b> A working technology is not yet impact: what counts is whether customers use it and something changes as a result. ` +
+      `Indicators marked <span class="kind-tag k-outcome real">★ Real-world outcome</span> or <span class="kind-tag k-adoption real">★ Adoption &amp; use</span> show that; ` +
+      `<span class="kind-tag k-technology">Technology only</span> ones show what the product can do. Example: irrigation water saved per participating farm says more than the number of sensors manufactured.</div>`;
     Object.entries(REF.INDICATOR_BANK).forEach(([category, indicators]) => {
       const custom = S.custom_indicators[category] || [];
-      const rows = indicators.map(r => ({ name: r[0], source: r[1], unit: r[2], citation: r[3], custom: false }))
-        .concat(custom.map(n => ({ name: n, source: "Custom indicator", unit: "", citation: null, custom: true })));
+      const rows = indicators.map(r => ({ name: r[0], source: r[1], unit: r[2], citation: r[3], kind: r[4], custom: false }))
+        .concat(custom.map(n => ({ name: n, source: "Custom indicator", unit: "", citation: null, kind: S.custom_kinds[n] || "", custom: true })));
       const nSel = rows.filter(r => S.selected_indicators[r.name]).length;
       let body = "";
       rows.forEach(r => {
@@ -513,7 +525,7 @@
         const e = S.selected_indicators[r.name];
         const dn = `data-name="${h(r.name)}"`;
         body += `<div class="ind"><div class="ind-top">
-          <div><label class="check" for="${id}"><input type="checkbox" id="${id}" data-f="sel" ${dn} data-cat="${h(category)}"${e ? " checked" : ""}><span>${h(r.name)}</span></label>
+          <div><label class="check" for="${id}"><input type="checkbox" id="${id}" data-f="sel" ${dn} data-cat="${h(category)}"${e ? " checked" : ""}><span>${h(r.name)} ${kindTag(r.kind)}</span></label>
             <div class="src">Data source: ${h(r.source)}${r.unit ? ` · typical unit: ${h(r.unit)}` : ""}${r.custom ? ` · <button class="btn small" style="min-height:auto;padding:.05rem .6rem;font-size:.74rem" data-action="rm-custom" ${dn} data-cat="${h(category)}">Remove</button>` : ""}</div></div>
           ${e ? `<div class="field"><label for="${id}-f">Feasibility</label>${selectHTML(`${id}-f`, `data-f="ind" ${dn} data-k="feasibility"`, SCORING.LEVELS, e.feasibility)}</div>
                  <div class="field"><label for="${id}-r">Relevance</label>${selectHTML(`${id}-r`, `data-f="ind" ${dn} data-k="relevance"`, SCORING.LEVELS, e.relevance)}</div>
@@ -523,6 +535,8 @@
       const cid = "custom-" + slug(category);
       body += `<div class="add-custom"><label class="sr-only" for="${cid}">Add a custom indicator to ${h(category)}</label>
         <input type="text" id="${cid}" placeholder="Add a custom indicator to “${h(category)}”" data-enter="add-custom" data-cat="${h(category)}">
+        <label class="sr-only" for="${cid}-k">What does it measure?</label>
+        ${selectHTML(`${cid}-k`, 'class="kind-select"', Object.entries(REF.INDICATOR_KINDS).map(([k, v]) => [k, v.label]), "", "What does it measure?")}
         <button class="btn small" data-action="add-custom" data-cat="${h(category)}" data-input="${cid}">Add</button></div>`;
       out += expander("cat-" + slug(category), `${h(category)}${nSel ? `<span class="count">${nSel} selected</span>` : ""}`, body, nSel > 0);
     });
@@ -552,8 +566,9 @@
         <div class="grid2" style="margin-bottom:.9rem">
           <div class="field"><label for="${id}-q">Measurement frequency</label>${selectHTML(`${id}-q`, a("frequency"), REF.FREQUENCIES, e.frequency || "")}</div>
           <div class="field"><label for="${id}-s">Actual data source you will use</label><input type="text" id="${id}-s" ${a("data_source")} value="${h(e.data_source)}"></div></div>
-        <div class="field" style="margin:0"><label for="${id}-l">Which impact-pathway stage does this indicator evidence?</label>${selectHTML(`${id}-l`, a("pathway_link"), stageOptions, link)}</div>`;
-      return expander(id, `${h(name)} <span class="sum-sub">· ${h(SCORING.bucket(e.feasibility, e.relevance))}</span>`, body, false);
+        <div class="field" style="margin:0"><label for="${id}-l">Which impact-pathway stage does this indicator evidence?</label>${selectHTML(`${id}-l`, a("pathway_link"), stageOptions, link)}</div>` +
+        (inBank(name) ? "" : `<div class="field" style="margin:.9rem 0 0"><label for="${id}-k">What does this indicator measure?</label>${selectHTML(`${id}-k`, a("kind"), Object.entries(REF.INDICATOR_KINDS).map(([k, v]) => [k, v.label]), e.kind || "", "Choose…")}</div>`);
+      return expander(id, `${h(name)} ${kindTag(REF.indicatorKind(name, e))} <span class="sum-sub">· ${h(SCORING.bucket(e.feasibility, e.relevance))}</span>`, body, false);
     }).join("");
   }
 
@@ -870,6 +885,7 @@
             category: cat, feasibility: "Medium", relevance: "Medium",
             unit: bank ? bank[2] : "", current_value: "", target: "", frequency: "",
             data_source: bank ? bank[1] : "Custom indicator", pathway_link: "", citation: bank ? bank[3] : null,
+            kind: bank ? bank[4] : (S.custom_kinds[name] || ""),
           };
           UI.open["cat-" + slug(cat)] = true;
         } else {
@@ -880,6 +896,7 @@
       case "ind": {
         const e = S.selected_indicators[el.dataset.name];
         if (e) e[el.dataset.k] = val;
+        if (el.dataset.k === "kind") S.custom_kinds[el.dataset.name] = val;
         return el.tagName === "SELECT";
       }
       case "unc": {
@@ -951,6 +968,7 @@
       case "rm-custom": {
         const list = S.custom_indicators[act.dataset.cat] || [];
         S.custom_indicators[act.dataset.cat] = list.filter(n => n !== act.dataset.name);
+        delete S.custom_kinds[act.dataset.name];
         delete S.selected_indicators[act.dataset.name];
         save(); rerender();
         break;
@@ -982,7 +1000,11 @@
     const exists = Object.values(REF.INDICATOR_BANK).flat().some(r => r[0] === name) ||
       Object.values(S.custom_indicators).flat().includes(name);
     if (exists) { toast("An indicator with that name already exists.", true); return; }
+    const kindSel = document.getElementById(input.id + "-k");
+    const kind = kindSel && kindSel.value;
+    if (!REF.INDICATOR_KINDS[kind]) { toast("Choose what the indicator measures (outcome, adoption, technology…).", true); if (kindSel) kindSel.focus(); return; }
     (S.custom_indicators[cat] = S.custom_indicators[cat] || []).push(name);
+    S.custom_kinds[name] = kind;
     UI.open["cat-" + slug(cat)] = true;
     save(); rerender();
     const again = document.getElementById("custom-" + slug(cat));

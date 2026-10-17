@@ -212,44 +212,78 @@ REF.EVIDENCE = ["Not rated", "Weak (assumption only)", "Moderate (some evidence)
 
 // ---------------------------------------------------------------------------
 // Module 3: Indicator bank (thesis Chapter 6, six categories)
-// Each entry: [indicator, typical data source, typical unit, citation key]
+// Each entry: [indicator, typical data source, typical unit, citation key, kind]
+// (citation null = added after the thesis, Oct 2026)
 // ---------------------------------------------------------------------------
 
 REF.INDICATOR_BANK = {
   "Resource & Energy Input": [
-    ["Total energy use over a defined period", "Utility invoices, production records", "kWh / period", "neumann2023"],
-    ["Energy intensity per unit of output", "Utility invoices + production volumes", "kWh / unit", "neumann2023"],
-    ["Share of renewable energy in total consumption", "Utility invoices / supplier data", "%", "neumann2023"],
-    ["Water consumption", "Utility invoices", "m³ / period", "iso2015"],
+    ["Total energy use over a defined period", "Utility invoices, production records", "kWh / period", "neumann2023", "operations"],
+    ["Energy intensity per unit of output", "Utility invoices + production volumes", "kWh / unit", "neumann2023", "operations"],
+    ["Share of renewable energy in total consumption", "Utility invoices / supplier data", "%", "neumann2023", "operations"],
+    ["Water consumption", "Utility invoices", "m³ / period", "iso2015", "operations"],
   ],
   "Emissions & Waste Output": [
-    ["Scope 1 direct GHG emissions (fuel combustion, company vehicles)", "Fuel records", "t CO₂e / yr", "ghgprotocol"],
-    ["Scope 2 indirect emissions (purchased electricity & heat)", "Utility invoices × emission factors", "t CO₂e / yr", "ghgprotocol"],
-    ["Scope 3 value-chain emissions (screening level)", "Spend data × generic factors; supplier data", "t CO₂e / yr", "ghgprotocol"],
-    ["Total waste generated", "Internal operational records", "kg / period", "neumann2023"],
-    ["Proportion of waste recycled", "Internal operational records", "%", "neumann2023"],
+    ["Scope 1 direct GHG emissions (fuel combustion, company vehicles)", "Fuel records", "t CO₂e / yr", "ghgprotocol", "operations"],
+    ["Scope 2 indirect emissions (purchased electricity & heat)", "Utility invoices × emission factors", "t CO₂e / yr", "ghgprotocol", "operations"],
+    ["Scope 3 value-chain emissions (screening level)", "Spend data × generic factors; supplier data", "t CO₂e / yr", "ghgprotocol", "operations"],
+    ["Total waste generated", "Internal operational records", "kg / period", "neumann2023", "operations"],
+    ["Proportion of waste recycled", "Internal operational records", "%", "neumann2023", "operations"],
   ],
   "Product-Level Performance & Avoided Impact": [
-    ["GHG emissions per functional unit (simplified / screening LCA)", "Design docs, bill of materials, LCA databases", "kg CO₂e / functional unit", "goyal2024"],
-    ["Avoided emissions vs. conventional reference technology", "Scenario-based calculation, contribution analysis", "t CO₂e avoided / yr", "goyal2024"],
-    ["Avoided physical harm per unit of adoption (domain-specific)", "Operational data + contribution analysis", "domain-specific (e.g. kg pesticide avoided / ha)", "mayne2008"],
+    ["Real-world environmental outcome per participating customer (measured against their own baseline)", "Customer meter / usage data before and after adoption", "domain-specific (e.g. m³ water saved per farm / season)", null, "outcome"],
+    ["Avoided emissions vs. conventional reference technology", "Scenario-based calculation, contribution analysis", "t CO₂e avoided / yr", "goyal2024", "outcome"],
+    ["Avoided physical harm per unit of adoption (domain-specific)", "Operational data + contribution analysis", "domain-specific (e.g. kg pesticide avoided / ha)", "mayne2008", "outcome"],
+    ["GHG emissions per functional unit (simplified / screening LCA)", "Design docs, bill of materials, LCA databases", "kg CO₂e / functional unit", "goyal2024", "technology"],
+    ["Units produced, sold or installed (e.g. sensors manufactured)", "Production and sales records", "count / period", null, "technology"],
   ],
   "Materials & Circularity": [
-    ["Share of recycled or biobased materials in products", "Bill of materials, supplier data", "%", "vanstijn2021"],
-    ["Expected product lifetime vs. standard alternatives", "Product specifications, testing", "years (vs. baseline)", "vanstijn2021"],
-    ["Proportion of components designed for reuse / repair / remanufacture", "Design documentation", "%", "vanstijn2021"],
+    ["Share of recycled or biobased materials in products", "Bill of materials, supplier data", "%", "vanstijn2021", "technology"],
+    ["Expected product lifetime vs. standard alternatives", "Product specifications, testing", "years (vs. baseline)", "vanstijn2021", "technology"],
+    ["Proportion of components designed for reuse / repair / remanufacture", "Design documentation", "%", "vanstijn2021", "technology"],
+    ["Share of products actually returned, reused or recycled at end of life", "Take-back records, partner data", "%", null, "outcome"],
   ],
   "Strategic & Governance": [
-    ["Explicit environmental mission or quantified targets in place", "Internal documents (self-assessment)", "yes/no + description", "neumann2023"],
-    ["Assigned responsibility for sustainability within the team", "Self-assessment", "yes/no + role", "neumann2023"],
-    ["Environmental criteria formally integrated into product development or partner selection", "Self-assessment, process documentation", "yes/no + description", "neumann2023"],
+    ["Explicit environmental mission or quantified targets in place", "Internal documents (self-assessment)", "yes/no + description", "neumann2023", "governance"],
+    ["Assigned responsibility for sustainability within the team", "Self-assessment", "yes/no + role", "neumann2023", "governance"],
+    ["Environmental criteria formally integrated into product development or partner selection", "Self-assessment, process documentation", "yes/no + description", "neumann2023", "governance"],
   ],
   "Systemic & Enabling Contribution": [
-    ["Number / type of customers or partners using the solution for environmental purposes", "CRM / sales data", "count + segmentation", "markard2012"],
-    ["Adoption rate of the solution", "Product analytics, sales data", "% of target market or growth rate", "roomi2021"],
-    ["Quality / reliability of adoption evidence", "Product analytics, user studies", "qualitative rating + evidence description", "mayne2008"],
-    ["Alignment with specific transition pathways or policy targets", "Strategy documents (self-assessment)", "qualitative + referenced target", "markard2012"],
+    ["Active use rate: share of customers using the solution as intended", "Product analytics, usage logs", "% of customers active per period", null, "adoption"],
+    ["Customer retention (share still using the solution after 6–12 months)", "CRM / subscription data", "%", null, "adoption"],
+    ["Number / type of customers or partners using the solution for environmental purposes", "CRM / sales data", "count + segmentation", "markard2012", "adoption"],
+    ["Adoption rate of the solution", "Product analytics, sales data", "% of target market or growth rate", "roomi2021", "adoption"],
+    ["Quality / reliability of adoption evidence", "Product analytics, user studies", "qualitative rating + evidence description", "mayne2008", "adoption"],
+    ["Alignment with specific transition pathways or policy targets", "Strategy documents (self-assessment)", "qualitative + referenced target", "markard2012", "governance"],
   ],
+};
+
+// What an indicator measures (5th element of each bank entry). The SIC
+// consultation's point: a working technology is not yet impact, so
+// indicators of adoption and real-world outcomes are highlighted over those
+// of technological performance (e.g. irrigation saved per participating
+// farm says more than the number of sensors manufactured).
+REF.INDICATOR_KINDS = {
+  outcome: { label: "Real-world outcome", short: "Real-world outcome", real: true,
+    help: "Measures a change that actually happened at customers or in the environment." },
+  adoption: { label: "Adoption & use", short: "Adoption & use", real: true,
+    help: "Measures whether customers take the product up and actually use it." },
+  technology: { label: "Technology / product only", short: "Technology only", real: false,
+    help: "Measures what the product is or can do, or how many were made. Useful, but not proof of impact on its own." },
+  operations: { label: "Own operations", short: "Own operations", real: false,
+    help: "Measures the startup's own footprint (energy, emissions, waste)." },
+  governance: { label: "Strategy & governance", short: "Governance", real: false,
+    help: "Measures commitments and processes inside the startup." },
+};
+
+// Kind of a selected indicator: bank entries carry it, custom indicators
+// store it on their entry.
+REF.indicatorKind = function (name, entry) {
+  for (const rows of Object.values(REF.INDICATOR_BANK)) {
+    const r = rows.find(x => x[0] === name);
+    if (r) return r[4];
+  }
+  return entry && REF.INDICATOR_KINDS[entry.kind] ? entry.kind : "";
 };
 
 REF.FREQUENCIES = ["", "Monthly", "Quarterly", "Annually", "Per milestone"];
@@ -389,6 +423,21 @@ SCORING.integrityChecks = function (selected, uncertainty) {
     }
   }
 
+  // 3b. Real impact: does the core set measure adoption or outcomes, or
+  // only the technology?
+  if (core.length) {
+    const kindOf = ([n, e]) => REF.indicatorKind(n, e);
+    const outcomes = core.filter(x => kindOf(x) === "outcome");
+    const adoption = core.filter(x => kindOf(x) === "adoption");
+    if (!outcomes.length && !adoption.length) {
+      checks.push(["warning", "No core indicator measures adoption or a real-world outcome. The core set describes the technology or the company, not whether customers use it or the environment benefits. Add one (e.g. irrigation saved per participating farm rather than sensors manufactured)."]);
+    } else if (!outcomes.length) {
+      checks.push(["info", "The core set measures adoption but no real-world outcome yet. Adoption shows the product is used; an outcome indicator shows that use changes something."]);
+    } else {
+      checks.push(["ok", "The core set includes at least one real-world outcome indicator."]);
+    }
+  }
+
   // 4. Materiality linkage: indicators should trace to the impact pathway
   const unlinked = core.filter(([, e]) => !e.pathway_link).map(([n]) => n);
   if (unlinked.length) {
@@ -525,6 +574,11 @@ SCORING.nextSteps = function (state) {
         `None of your core claims is measured yet. Start with “${pick}”: name the data that would prove it, who collects it, and how often. ` +
         "One measured claim is worth more to a reviewer than several projected ones.");
     }
+  }
+  if (core.length && !core.some(([n, e]) => REF.INDICATOR_KINDS[REF.indicatorKind(n, e)]?.real)) {
+    act("Measure real impact, not only the technology",
+      "Your core indicators describe the product or the company. Add one that shows customers use it and something changes as a result, " +
+      "for example irrigation water saved per participating farm instead of the number of sensors manufactured (step 3, indicators marked green).");
   }
   const asp = buckets[SCORING.BUCKET_ASPIRATIONAL].map(([n]) => n);
   if (asp.length) {

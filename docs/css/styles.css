@@ -392,3 +392,18 @@ details.exp > .body { padding: 0 1rem 1rem; border-top: 1px solid var(--border);
   display: inline-block; margin-left: .4rem; padding: .05rem .55rem; border-radius: 999px;
   background: #D9661F; color: #fff; font-size: .72rem; font-weight: 700; vertical-align: middle;
 }
+
+/* what an indicator measures (step 3) */
+.kind-tag {
+  display: inline-block; margin-left: .3rem; padding: .02rem .5rem; border-radius: 999px;
+  font-size: .7rem; font-weight: 700; vertical-align: .08em; white-space: nowrap;
+  background: #EEF0EC; color: #5F6B63; border: 1px solid #DDE2DA;
+}
+.kind-tag.real { background: #E3F1E7; color: #1E6A47; border-color: #B9D9C3; }
+.kind-tag.k-none { background: #fff; color: #9AA39D; border-style: dashed; }
+.kind-legend {
+  background: #F4F9F5; border: 1px solid #CFE3D5; border-radius: .8rem; padding: .75rem .95rem;
+  font-size: .86rem; line-height: 1.6; margin: 0 0 .9rem;
+}
+.kind-select { max-width: 16rem; }
+.add-custom { flex-wrap: wrap; }

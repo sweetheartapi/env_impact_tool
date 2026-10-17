@@ -30,9 +30,20 @@ Central Bohemian Innovation Centre (SIC):
   technological solution is not yet a viable product. The diagram is also in
   the Word and HTML/PDF reports (`docs/js/diagram.js`). If no customer step
   has solid evidence, step 2 warns and the report adds a next step.
+- **Indicators that reflect real impact (step 3).** Every indicator is tagged
+  by what it measures: real-world outcome, adoption & use, technology /
+  product only, own operations, or governance. Outcome and adoption
+  indicators are highlighted. New bank entries: real-world outcome per
+  participating customer, active use rate, customer retention, share of
+  products actually returned or recycled, and (as a contrast) units
+  produced or installed. These additions carry no thesis citation. Custom
+  indicators must say what they measure. A new integrity check warns when
+  no core indicator measures adoption or a real-world outcome, and the Word
+  report's indicator tables gain a "Measures" column.
 - Save files gain optional keys: `customer_types`, `revenue_models`,
   `customer_profile` (the buyer), `customer_user`, `behaviour_actor`,
-  `value_drivers`, `customer_value`, and `change` on each pathway stage.
+  `value_drivers`, `customer_value`, `custom_kinds`, `change` on each pathway
+  stage and `kind` on each selected indicator.
   Older files load without them.
 
 

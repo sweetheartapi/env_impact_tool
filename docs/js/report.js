@@ -92,6 +92,9 @@ function customerLines(cu) {
   ].filter(([, v]) => v);
 }
 
+const kindLabel = (n, e) => (REF.INDICATOR_KINDS[REF.indicatorKind(n, e)] || { label: "not set" }).label;
+const kindReal = (n, e) => !!(REF.INDICATOR_KINDS[REF.indicatorKind(n, e)] || {}).real;
+
 const INDICATOR_FIELDS = [["unit", "Unit"], ["current_value", "Current value"], ["target", "Target"],
   ["frequency", "Measured"], ["data_source", "Data source"], ["pathway_link", "Evidences pathway stage"]];
 
@@ -155,7 +158,7 @@ REPORT.toMarkdown = function (r) {
     if (!items.length) return;
     L.push(`### ${b}`);
     items.forEach(([n, e]) => {
-      const d = [`Feasibility: ${e.feasibility}`, `Relevance: ${e.relevance}`];
+      const d = [`Measures: ${kindLabel(n, e)}`, `Feasibility: ${e.feasibility}`, `Relevance: ${e.relevance}`];
       INDICATOR_FIELDS.forEach(([f, lbl]) => { if (e[f]) d.push(`${lbl}: ${e[f]}`); });
       L.push(`- **${n}** (${e.category}): ` + d.join(" · "));
     });
@@ -289,7 +292,7 @@ REPORT.toHtmlBody = function (r) {
     any = true;
     P.push(`<h3>${esc(b)}</h3>`);
     P.push(li(items.map(([n, e]) => {
-      const d = [`Feasibility: ${e.feasibility}`, `Relevance: ${e.relevance}`];
+      const d = [`Measures: ${esc(kindLabel(n, e))}`, `Feasibility: ${e.feasibility}`, `Relevance: ${e.relevance}`];
       INDICATOR_FIELDS.forEach(([f, lbl]) => { if (e[f]) d.push(`${lbl}: ${esc(e[f])}`); });
       return `<b>${esc(n)}</b> <i>(${esc(e.category)})</i>: ` + d.join(" · ");
     })));
@@ -467,7 +470,7 @@ REPORT.toDocx = async function (r, extras = {}) {
     margins: { top: 60, bottom: 60, left: 90, right: 90 },
     children: [new Paragraph({ children: [new TextRun({ text, size: 19, bold: !!opts.bold, color: opts.color })] })],
   });
-  const widths = [30, 18, 8, 8, 36];
+  const widths = [27, 15, 14, 7, 7, 30];
   let anyInd = false;
   SCORING.BUCKET_ORDER.forEach(b => {
     const items = r.buckets[b];
@@ -476,7 +479,7 @@ REPORT.toDocx = async function (r, extras = {}) {
     children.push(h(b, HeadingLevel.HEADING_2));
     const rows = [new TableRow({
       tableHeader: true,
-      children: ["Indicator", "Category", "Feas.", "Rel.", "Details"].map((t, i) =>
+      children: ["Indicator", "Category", "Measures", "Feas.", "Rel.", "Details"].map((t, i) =>
         cell(t, { bold: true, fill: DOCX_C.green, color: "FFFFFF", width: widths[i] })),
     })];
     items.forEach(([n, e], idx) => {
@@ -485,8 +488,8 @@ REPORT.toDocx = async function (r, extras = {}) {
         ["data_source", "Source"], ["pathway_link", "Evidences"]].forEach(([f, lbl]) => { if (e[f]) d.push(`${lbl}: ${e[f]}`); });
       const fill = idx % 2 === 1 ? DOCX_C.light : undefined;
       rows.push(new TableRow({
-        children: [n, e.category || "", e.feasibility || "", e.relevance || "", d.length ? d.join("; ") : "—"]
-          .map((t, i) => cell(t, { fill, width: widths[i] })),
+        children: [n, e.category || "", kindLabel(n, e), e.feasibility || "", e.relevance || "", d.length ? d.join("; ") : "—"]
+          .map((t, i) => cell(t, { fill, width: widths[i], color: i === 2 && kindReal(n, e) ? DOCX_C.green : undefined, bold: i === 2 && kindReal(n, e) })),
       }));
     });
     children.push(new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } }));
@@ -588,7 +591,7 @@ REPORT.PERSISTED_KEYS = [
   "value_drivers", "customer_value",
   "mechanism", "orientation", "is_hybrid", "secondary_mechanism",
   "pathway", "weakest_links",
-  "selected_indicators", "custom_indicators", "uncertainty",
+  "selected_indicators", "custom_indicators", "custom_kinds", "uncertainty",
   "assessment_version", "next_review_milestone", "review_notes",
 ];
 
