@@ -103,3 +103,12 @@
 .closing { text-align: center; padding: 2.4rem 0 .6rem; border-top: 1px solid var(--border); }
 .closing h2 { justify-content: center; margin-bottom: .5rem; }
 .closing p { color: var(--muted); max-width: 30rem; margin: 0 auto; }
+
+/* who it is for */
+.audiences { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; margin-top: .9rem; }
+@media (max-width: 640px) { .audiences { grid-template-columns: minmax(0, 1fr); } }
+.aud { background: rgba(255,255,255,.88); border: 1px solid var(--border); border-radius: .9rem; padding: .85rem 1rem; }
+.aud b { display: block; font-size: 1rem; margin-bottom: .2rem; }
+.aud span { font-size: .93rem; color: #3C4A42; line-height: 1.5; }
+.aud.primary { border-color: var(--green); background: #F4F9F5; }
+.aud.primary b::after { content: "Primary"; margin-left: .5rem; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #fff; background: var(--green); border-radius: 999px; padding: .08rem .5rem; vertical-align: .12em; }

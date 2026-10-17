@@ -77,6 +77,12 @@ Central Bohemian Innovation Centre (SIC):
   documented, suggesting an evidence summary. Step 5 has a "How
   recommendations are made" table of all rules and which ones apply, and
   the report ends with the same table as an appendix.
+- **Positioning.** The homepage now leads with "Understand your impact.
+  Strengthen your claims. Know what comes next." and addresses founders
+  first, with a "Who it is for" section (founders as primary users;
+  accelerators and incubators; impact-oriented investors; conventional
+  investors where environmental impact is relevant), instead of framing
+  the report mainly as something to show investors.
 - Save files gain optional keys: `customer_types`, `revenue_models`,
   `customer_profile` (the buyer), `customer_user`, `behaviour_actor`,
   `value_drivers`, `customer_value`, `custom_kinds`, `change` on each pathway

@@ -475,7 +475,7 @@
           ["Steps that depend on customers", String(flat.filter(s => s.change && s.change !== "none").length)],
         ]), "🗺️") + card("Why this matters", "<p>Every stage carries an assumption. Naming the weak ones now is not a weakness. It tells you exactly where measurement is most needed.</p>", "❝", true);
       })}</aside></div>` +
-      tip("A weak link is a finding, not a failure. Investors trust an honest chain more than a perfect story.");
+      tip("A weak link is a finding, not a failure. Mentors, customers and investors trust an honest chain more than a perfect story.");
   }
 
   // ============================================================= step 3 ==
