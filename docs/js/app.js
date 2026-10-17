@@ -23,7 +23,10 @@
     stage: "Ideation",
     // customer profile: who buys, and why (SIC consultation, Oct 2026)
     customer_types: [],
-    customer_profile: "",
+    customer_profile: "",   // the buyer
+    customer_user: "",
+    behaviour_actor: "",
+    revenue_models: [],
     value_drivers: [],
     customer_value: "",
     // null until the diagnostic questions are answered: the classification
@@ -76,11 +79,12 @@
     const d = DEFAULTS();
     const s = Object.assign(d, isObj(raw) ? raw : {});
     ["startup_name", "startup_desc", "sector", "weakest_links", "next_review_milestone", "review_notes",
-      "customer_profile", "customer_value"]
+      "customer_profile", "customer_user", "behaviour_actor", "customer_value"]
       .forEach(k => { if (typeof s[k] !== "string") s[k] = s[k] == null ? "" : String(s[k]); });
     const pick = (v, allowed) => Array.isArray(v) ? allowed.map(([k]) => k).filter(k => v.includes(k)) : [];
     s.customer_types = pick(s.customer_types, REF.CUSTOMER_TYPES);
     s.value_drivers = pick(s.value_drivers, REF.VALUE_DRIVERS);
+    s.revenue_models = pick(s.revenue_models, REF.REVENUE_MODELS);
     if (!REF.STAGES.includes(s.stage)) s.stage = "Ideation";
     if (!["Direct", "Enabling"].includes(s.mechanism)) s.mechanism = null;
     if (!["Primary", "Secondary"].includes(s.orientation)) s.orientation = null;
@@ -183,7 +187,8 @@
   function stepStatus() {
     const out = {};
     const f1 = [!!S.startup_name, !!S.sector, !!S.startup_desc, S.customer_types.length > 0,
-      !!S.customer_profile.trim(), S.value_drivers.length > 0, S.mechanism != null, S.orientation != null];
+      S.revenue_models.length > 0, !!S.customer_profile.trim(), !!S.customer_user.trim(),
+      !!S.behaviour_actor.trim(), S.value_drivers.length > 0, S.mechanism != null, S.orientation != null];
     out[1] = { pct: Math.round(100 * f1.filter(Boolean).length / f1.length), done: profileReady() };
 
     const stages = Object.values(S.pathway).flat();
@@ -356,19 +361,30 @@
   // An impact claim only matters if someone buys and uses the product, and
   // the next steps in the report depend on who that is.
   function customerPanel() {
-    const types = REF.CUSTOMER_TYPES.map(([k, label], i) =>
-      `<label class="choice" for="ctype-${i}"><input type="checkbox" id="ctype-${i}" data-f="ctype" value="${k}"${S.customer_types.includes(k) ? " checked" : ""}><span>${h(label)}</span></label>`).join("");
-    const drivers = REF.VALUE_DRIVERS.map(([k, label], i) =>
-      `<label class="choice" for="vdrv-${i}"><input type="checkbox" id="vdrv-${i}" data-f="vdriver" value="${k}"${S.value_drivers.includes(k) ? " checked" : ""}><span>${h(label)}</span></label>`).join("");
+    const boxes = (list, f, cur, idp) => list.map(([k, label], i) =>
+      `<label class="choice" for="${idp}-${i}"><input type="checkbox" id="${idp}-${i}" data-f="${f}" value="${k}"${cur.includes(k) ? " checked" : ""}><span>${h(label)}</span></label>`).join("");
     const mixed = S.customer_types.length > 1
       ? `<p class="caption" style="margin:.5rem 0 0">Mixed model: <b>${h(S.customer_types.join(" + "))}</b>. The report will ask which segment you prove the impact with first.</p>` : "";
+    const directOnly = S.mechanism === "Direct" && !S.is_hybrid;
+    const actorHint = directOnly
+      ? "If the benefit happens without anyone changing what they do, write “nobody”. That is normal for direct-impact products."
+      : S.mechanism === "Enabling"
+        ? "Important for your type of startup: the impact only happens if these people change what they do. Your evidence has to cover them."
+        : "If the benefit only happens when someone changes what they do, who is it? Write “nobody” if no change is needed.";
     return `<div class="panel"><h2>Your customer</h2>
-      <p class="lead">Who buys your product or service, and why? The environmental benefit only happens if someone buys and uses it, so the recommended next steps in your report depend on these answers.</p>
-      <fieldset class="question"><legend>Who are your customers? <span class="hint">(select all that apply)</span></legend><div class="opts inline">${types}</div>${mixed}</fieldset>
-      <div class="field"><label for="customer_profile">Ideal customer profile</label>
-        <textarea id="customer_profile" data-f="customer_profile" rows="2" placeholder="e.g. Mid-size vegetable farms (50–500 ha) in dry regions that irrigate from metered sources">${h(S.customer_profile)}</textarea>
-        <span class="hint">Who exactly buys it? If someone else has to use it or change their behaviour (an employee, an end user), say so.</span></div>
-      <fieldset class="question"><legend>What makes customers want to buy your product or service? <span class="hint">(select all that apply)</span></legend><div class="opts">${drivers}</div></fieldset>
+      <p class="lead">Who buys your product or service, how you earn money, and who has to use it for the environmental benefit to happen. The recommended next steps in your report depend on these answers.</p>
+      <fieldset class="question"><legend>Customer segment: who are your customers? <span class="hint">(select all that apply)</span></legend><div class="opts inline">${boxes(REF.CUSTOMER_TYPES, "ctype", S.customer_types, "ctype")}</div>${mixed}</fieldset>
+      <fieldset class="question"><legend>Revenue model: how do you earn money from them? <span class="hint">(select all that apply)</span></legend><div class="opts two">${boxes(REF.REVENUE_MODELS, "revenue", S.revenue_models, "rev")}</div></fieldset>
+      <h3 class="sub-h">Buyer, user and who has to change behaviour</h3>
+      <p class="caption" style="margin:0 0 .8rem">These are often different people. A municipality may buy route-planning software, but only if its employees use it every day does any fuel get saved. Write “same as buyer” where a role is the same.</p>
+      <div class="field"><label for="customer_profile">Buyer: who decides and pays?</label>
+        <textarea id="customer_profile" data-f="customer_profile" rows="2" placeholder="e.g. Owners of mid-size vegetable farms (50–500 ha) in dry regions">${h(S.customer_profile)}</textarea></div>
+      <div class="field"><label for="customer_user">User: who uses it day to day?</label>
+        <textarea id="customer_user" data-f="customer_user" rows="2" placeholder="e.g. Farm managers and irrigation staff">${h(S.customer_user)}</textarea></div>
+      <div class="field"><label for="behaviour_actor">Whose behaviour must change for the environmental benefit to happen?</label>
+        <textarea id="behaviour_actor" data-f="behaviour_actor" rows="2" placeholder="e.g. Whoever decides when and how much to irrigate">${h(S.behaviour_actor)}</textarea>
+        <span class="hint">${h(actorHint)}</span></div>
+      <fieldset class="question"><legend>What makes customers want to buy your product or service? <span class="hint">(select all that apply)</span></legend><div class="opts">${boxes(REF.VALUE_DRIVERS, "vdriver", S.value_drivers, "vdrv")}</div></fieldset>
       <div class="field" style="margin-bottom:0"><label for="customer_value">In one sentence: what does the customer get, and how is it linked to the environmental benefit? <span class="hint">(optional)</span></label>
         <input type="text" id="customer_value" data-f="customer_value" value="${h(S.customer_value)}" placeholder="e.g. Lower water bills: every m³ the farm saves is also money saved."></div>
     </div>`;
@@ -776,13 +792,19 @@
     const val = el.type === "checkbox" ? el.checked : el.value;
     switch (f) {
       case "startup_name": case "startup_desc": case "sector": case "weakest_links": case "review_notes":
-      case "customer_profile": case "customer_value":
+      case "customer_profile": case "customer_user": case "behaviour_actor": case "customer_value":
         S[f] = val; return false;
       case "stage": S.stage = val; return false;
       case "ctype": {
         const set = new Set(S.customer_types);
         if (val) set.add(el.value); else set.delete(el.value);
         S.customer_types = REF.CUSTOMER_TYPES.map(([k]) => k).filter(k => set.has(k));
+        return true;
+      }
+      case "revenue": {
+        const set = new Set(S.revenue_models);
+        if (val) set.add(el.value); else set.delete(el.value);
+        S.revenue_models = REF.REVENUE_MODELS.map(([k]) => k).filter(k => set.has(k));
         return true;
       }
       case "vdriver": {

@@ -71,6 +71,19 @@ REF.CUSTOMER_TYPES = [
   ["B2G", "Public sector (B2G)"],
 ];
 
+// Revenue model: how the startup earns money. Not the same thing as the
+// customer segment (a B2G startup can sell licences or subscriptions).
+REF.REVENUE_MODELS = [
+  ["subscription", "Subscription (e.g. SaaS, monthly or annual fee)"],
+  ["hardware_sub", "Device or equipment plus a subscription"],
+  ["sale", "One-off sale of a product, device or equipment"],
+  ["licence", "Licensing (others use your technology or IP)"],
+  ["usage", "Pay per use or per transaction"],
+  ["service", "Project, service or consulting fees"],
+  ["commission", "Commission or marketplace fee"],
+  ["other", "Other / not decided yet"],
+];
+
 // Why a customer would pay, and whether the environmental benefit is part
 // of that reason. Multi-select.
 REF.VALUE_DRIVERS = [
@@ -407,6 +420,14 @@ SCORING.nextSteps = function (state) {
   const unc = state.uncertainty || {};
   const types = (state.customer_types || []).filter(t => REF.CUSTOMER_TYPES.some(([k]) => k === t));
   const drivers = state.value_drivers || [];
+  const revenue = state.revenue_models || [];
+  const buyer = (state.customer_profile || "").trim();
+  const user = (state.customer_user || "").trim();
+  const actor = (state.behaviour_actor || "").trim();
+  // "same as buyer", empty or identical text all mean the same role
+  const norm = t => t.toLowerCase().replace(/[^a-z0-9á-ž]+/g, " ").trim();
+  const sameRole = (a, b) => !a || !b || /^(same|stejn|the buyer|buyer)\b/i.test(a) || norm(a) === norm(b);
+  const short = t => t.length > 60 ? t.slice(0, 57).replace(/\s+\S*$/, "") + "…" : t;
   const enabling = state.mechanism === "Enabling" || state.secondary_mechanism === "Enabling";
   const direct = state.mechanism === "Direct" || state.secondary_mechanism === "Direct";
   const stagesFlat = [];
@@ -417,10 +438,19 @@ SCORING.nextSteps = function (state) {
   // ---- Next steps: concrete actions, most important first --------------
 
   // 1. Customer profile missing: everything downstream depends on it.
-  if (!types.length || !(state.customer_profile || "").trim()) {
+  if (!types.length || !buyer || !revenue.length) {
+    const miss = [];
+    if (!types.length) miss.push("the customer segment (B2B, B2C, B2G or a mix)");
+    if (!revenue.length) miss.push("how you earn money from them");
+    if (!buyer) miss.push("who the buyer is");
     act("Name your customer",
-      "Say who buys the product (businesses, consumers, public sector or a mix) and describe the ideal customer in step 1. " +
+      `Fill in ${miss.join(", ")} in step 1. ` +
       "Impact only counts if someone pays for and uses the solution, and the right next steps depend on who that is.");
+  }
+  if (enabling && !actor) {
+    act("Name who has to change behaviour",
+      "Your environmental benefit depends on someone doing things differently. Say in step 1 who that is: the buyer, the day-to-day user, or someone else. " +
+      "That is whose behaviour your evidence has to cover.");
   }
 
   // 2. Weakest links: assumptions with no evidence behind them.
@@ -515,10 +545,35 @@ SCORING.nextSteps = function (state) {
       "Have you considered which environmental criteria public tenders in your field use (e.g. green public procurement criteria) and whether your indicators match them? " +
       "Expect long sales cycles, so plan the evidence early.");
   }
-  if (enabling) {
-    ask("Is the user the same person as the payer?",
-      "Have you considered who actually has to change their behaviour: the person who buys the product, or someone else (an employee, a tenant, an end user)? " +
-      "If they differ, your adoption evidence has to come from the user, not from the sale.");
+  if (enabling && actor && buyer && !sameRole(actor, buyer)) {
+    ask("Is your evidence about the right people?",
+      `The buyer (${short(buyer)}) is not the one whose behaviour must change (${short(actor)}). ` +
+      "Have you considered how you will show that those people actually change what they do? A signed contract or a sold licence is evidence of purchase, not of behaviour change.");
+  } else if (user && buyer && !sameRole(user, buyer)) {
+    ask("Do the users actually use it?",
+      `The buyer (${short(buyer)}) and the day-to-day users (${short(user)}) are different. ` +
+      "Have you considered tracking active use, not only sales? Products bought by one person and ignored by another produce no impact.");
+  } else if (enabling && !actor) {
+    ask("Who has to change their behaviour?",
+      "Have you considered who actually has to do something differently: the person who buys the product, or someone else (an employee, a tenant, an end user)? " +
+      "If they differ, your adoption evidence has to come from them, not from the sale.");
+  }
+  if (revenue.includes("subscription") || revenue.includes("hardware_sub")) {
+    ask("Does churn also cut your impact?",
+      "With a subscription, a customer who cancels stops producing impact. Have you considered reporting active, retained customers rather than total sign-ups? " +
+      "Your retention figure then doubles as adoption evidence.");
+  }
+  if (revenue.includes("sale")) {
+    ask("What happens after the sale?",
+      "With a one-off sale you lose sight of how the product is used. Have you considered how you will get usage data afterwards (a data-sharing clause, service visits, a connected device, a follow-up survey)?");
+  }
+  if (revenue.includes("licence")) {
+    ask("Can you see how licensees deploy it?",
+      "With licensing, the impact happens at the licensee. Have you considered a contract clause that gives you access to deployment and usage data?");
+  }
+  if (revenue.includes("usage")) {
+    ask("Is your billing data also impact data?",
+      "With pay-per-use, every billed use is recorded. Have you considered using those records directly as measured adoption evidence?");
   }
   if (enabling && drivers.includes("cost")) {
     ask("Can one dataset show both savings?",

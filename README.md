@@ -7,16 +7,22 @@
 Changes to the web version, from the expert consultation with the
 Central Bohemian Innovation Centre (SIC):
 
-- **Customer profile in step 1.** Who buys the product (B2B, B2C, B2G or a
-  mix), the ideal customer profile, why they would buy the product, and how that links
-  to the environmental benefit. Optional, so existing save files still load.
+- **Customer profile in step 1.** Customer segment (B2B, B2C, B2G or a mix)
+  and, separately, the revenue model (subscription, device + subscription,
+  one-off sale, licensing, pay per use, fees, commission). Three roles are
+  asked apart: the buyer, the day-to-day user, and whoever must change their
+  behaviour for the environmental benefit to happen (a municipality may buy
+  software that only saves fuel if its employees use it). Plus why customers
+  buy and how that links to the environmental benefit. All optional, so
+  existing save files still load.
 - **Next steps and points to consider.** Step 5 and every report format now
   end with concrete next steps drawn from the gaps in the assessment (weakest
   links, missing baselines, unmeasured core claims, aspirational indicators,
   a missing customer or commercial reason to adopt) and with "Have you
   considered…?" prompts that depend on the customer type, impact mechanism
   and stage. The rules are in `SCORING.nextSteps` in `docs/js/framework.js`.
-- Save files gain four optional keys: `customer_types`, `customer_profile`,
+- Save files gain optional keys: `customer_types`, `revenue_models`,
+  `customer_profile` (the buyer), `customer_user`, `behaviour_actor`,
   `value_drivers`, `customer_value`. Older files load without them.
 
 

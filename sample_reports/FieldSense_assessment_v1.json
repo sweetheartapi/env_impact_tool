@@ -10,7 +10,12 @@
     "customer_types": [
       "B2B"
     ],
-    "customer_profile": "Small and mid-size vegetable and orchard farms (20–500 ha) in dry regions that irrigate from metered wells or paid water sources. The farmer or farm manager decides on irrigation and pays for the subscription.",
+    "revenue_models": [
+      "hardware_sub"
+    ],
+    "customer_profile": "Owners of small and mid-size vegetable and orchard farms (20–500 ha) in dry regions that irrigate from metered wells or paid water sources.",
+    "customer_user": "Farm managers and irrigation staff who check the app and run the irrigation system.",
+    "behaviour_actor": "Whoever decides when and how much to irrigate on the farm (usually the farm manager, not the owner).",
     "value_drivers": [
       "cost",
       "performance"

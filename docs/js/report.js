@@ -39,6 +39,9 @@ REPORT.assemble = function (state) {
       types: state.customer_types || [],
       type_label: REF.customerTypeLabel(state.customer_types),
       profile: state.customer_profile || "",
+      user: state.customer_user || "",
+      actor: state.behaviour_actor || "",
+      revenue: (state.revenue_models || []).map(k => (REF.REVENUE_MODELS.find(([v]) => v === k) || [k, k])[1]),
       drivers: (state.value_drivers || []).map(k => (REF.VALUE_DRIVERS.find(([v]) => v === k) || [k, k])[1]),
       value: state.customer_value || "",
     },
@@ -79,8 +82,11 @@ function evidenceLine(counts) {
 // Customer lines for section 1, as [label, value] pairs (empty ones dropped).
 function customerLines(cu) {
   return [
-    ["Customer type", cu.type_label],
-    ["Ideal customer profile", cu.profile],
+    ["Customer segment", cu.type_label],
+    ["Revenue model", (cu.revenue || []).join("; ")],
+    ["Buyer (decides and pays)", cu.profile],
+    ["User (day to day)", cu.user],
+    ["Whose behaviour must change", cu.actor],
     ["Why customers buy it", cu.drivers.join("; ")],
     ["Customer value & environmental link", cu.value],
   ].filter(([, v]) => v);
@@ -556,7 +562,8 @@ REPORT.toDocx = async function (r) {
 
 REPORT.PERSISTED_KEYS = [
   "startup_name", "startup_desc", "sector", "stage",
-  "customer_types", "customer_profile", "value_drivers", "customer_value",
+  "customer_types", "revenue_models", "customer_profile", "customer_user", "behaviour_actor",
+  "value_drivers", "customer_value",
   "mechanism", "orientation", "is_hybrid", "secondary_mechanism",
   "pathway", "weakest_links",
   "selected_indicators", "custom_indicators", "uncertainty",
