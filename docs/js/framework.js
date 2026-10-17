@@ -60,6 +60,35 @@ REF.DIAGNOSTIC_ORIENTATION = {
 };
 
 // ---------------------------------------------------------------------------
+// Customer profile (added after the SIC expert consultation, Oct 2026):
+// who buys the product and why. The impact claim has to survive contact
+// with a paying customer, and the next steps depend on who that is.
+// ---------------------------------------------------------------------------
+
+REF.CUSTOMER_TYPES = [
+  ["B2B", "Businesses (B2B)"],
+  ["B2C", "Consumers (B2C)"],
+  ["B2G", "Public sector (B2G)"],
+];
+
+// Why a customer would pay, and whether the environmental benefit is part
+// of that reason. Multi-select.
+REF.VALUE_DRIVERS = [
+  ["cost", "It saves the customer money (lower energy, water, material or input costs)"],
+  ["compliance", "It helps them meet a regulation, permit or reporting duty"],
+  ["reporting", "It gives them data for their own sustainability / ESG reporting or supplier requests"],
+  ["premium", "It lets them charge more or win buyers who value sustainability"],
+  ["performance", "It does the job better, faster or more reliably (environment aside)"],
+  ["none", "There is no direct financial benefit to the customer yet"],
+];
+
+REF.customerTypeLabel = function (types) {
+  const t = (types || []).filter(x => REF.CUSTOMER_TYPES.some(([k]) => k === x));
+  if (!t.length) return "";
+  return t.length > 1 ? `Mixed (${t.join(" + ")})` : t[0];
+};
+
+// ---------------------------------------------------------------------------
 // Development stages and stage-dependent module emphasis (thesis Figure 11)
 // ---------------------------------------------------------------------------
 
@@ -354,4 +383,170 @@ SCORING.integrityChecks = function (selected, uncertainty) {
       ". Transparency over precision: every non-measured claim must state its driving assumptions."]);
   }
   return checks;
+};
+
+// ===========================================================================
+// Next steps and points to consider (added after the SIC expert
+// consultation, Oct 2026). The report should not stop at a diagnosis: it
+// ends with concrete next steps drawn from the gaps in this assessment, and
+// with "Have you considered...?" prompts the team is free to ignore.
+// Returns {actions: [{title, text}], consider: [{title, text}]}.
+// ===========================================================================
+
+SCORING.MAX_ACTIONS = 6;
+SCORING.MAX_CONSIDER = 6;
+
+SCORING.nextSteps = function (state) {
+  const actions = [], consider = [];
+  const act = (title, text) => actions.push({ title, text });
+  const ask = (title, text) => consider.push({ title, text });
+  const list = names => names.map(n => `“${n}”`).join(", ");
+
+  const pathway = state.pathway || {};
+  const selected = state.selected_indicators || {};
+  const unc = state.uncertainty || {};
+  const types = (state.customer_types || []).filter(t => REF.CUSTOMER_TYPES.some(([k]) => k === t));
+  const drivers = state.value_drivers || [];
+  const enabling = state.mechanism === "Enabling" || state.secondary_mechanism === "Enabling";
+  const direct = state.mechanism === "Direct" || state.secondary_mechanism === "Direct";
+  const stagesFlat = [];
+  Object.entries(pathway).forEach(([track, st]) => (st || []).forEach(s => stagesFlat.push(Object.assign({ track }, s))));
+  const allText = [state.weakest_links || "", ...stagesFlat.map(s => `${s.description || ""} ${s.assumption || ""}`),
+    ...Object.values(unc).map(u => `${u.assumptions || ""} ${u.conditions || ""}`)].join(" ").toLowerCase();
+
+  // ---- Next steps: concrete actions, most important first --------------
+
+  // 1. Customer profile missing: everything downstream depends on it.
+  if (!types.length || !(state.customer_profile || "").trim()) {
+    act("Name your customer",
+      "Say who buys the product (businesses, consumers, public sector or a mix) and describe the ideal customer in step 1. " +
+      "Impact only counts if someone pays for and uses the solution, and the right next steps depend on who that is.");
+  }
+
+  // 2. Weakest links: assumptions with no evidence behind them.
+  // later links in the chain (behaviour change, impact) first: that is
+  // where an impact claim usually breaks, and where reviewers probe
+  const rank = s => /impact/i.test(s.stage) ? 0 : /outcome/i.test(s.stage) ? 1 : /output/i.test(s.stage) ? 2 : 3;
+  const weak = stagesFlat.filter(s => s.evidence === "Weak (assumption only)").sort((x, y) => rank(x) - rank(y));
+  weak.slice(0, 2).forEach(s => {
+    let text = `“${s.stage}” currently rests on an assumption only` +
+      (s.assumption ? ` (“${s.assumption}”)` : "") +
+      ". Design one small, cheap test that would confirm or refute it before you build further claims on it.";
+    if (enabling && /outcome|behav/i.test(s.stage)) {
+      text += " For an adoption-driven pathway, compare usage logs or meter readings for a few pilot customers before and after they adopt.";
+    } else if (/impact/i.test(s.stage)) {
+      text += " Agree a baseline first: what would have happened without your product?";
+    }
+    act("Test the weakest link", text);
+  });
+
+  // 3. Pathway stages left empty.
+  const empty = stagesFlat.filter(s => !(s.description || "").trim());
+  if (stagesFlat.length && empty.length) {
+    act("Complete the impact pathway",
+      `${empty.length} of ${stagesFlat.length} pathway stage${stagesFlat.length === 1 ? " is" : "s are"} not described yet (${list(empty.slice(0, 3).map(s => s.stage))}${empty.length > 3 ? ", …" : ""}). ` +
+      "A gap in the chain is the first place an investor or mentor will push.");
+  }
+
+  // 4. Indicators.
+  const buckets = SCORING.groupByBucket(selected);
+  const core = buckets[SCORING.BUCKET_CORE];
+  const lvl = n => (unc[n] || {}).level;
+  if (!core.length) {
+    act("Choose a core indicator",
+      "Select at least one indicator that is both highly relevant to your pathway and at least moderately feasible to measure (step 3).");
+  } else {
+    const noBaseline = core.filter(([, e]) => !(e.current_value || "").toString().trim()).map(([n]) => n);
+    if (noBaseline.length) {
+      act("Record a baseline",
+        `Write down today's value for ${list(noBaseline.slice(0, 3))}${noBaseline.length > 3 ? " and others" : ""}, even if it is zero or a rough figure. ` +
+        "Without a starting point you cannot show improvement at the next review.");
+    }
+    const grounded = core.filter(([n]) => lvl(n) === "Measured");
+    const modelled = core.filter(([n]) => lvl(n) === "Modelled").map(([n]) => n);
+    const projected = core.filter(([n]) => lvl(n) === "Projected").map(([n]) => n);
+    if (!grounded.length && (modelled.length || projected.length)) {
+      const pick = modelled[0] || projected[0];
+      act("Turn one claim into a measured one",
+        `None of your core claims is measured yet. Start with “${pick}”: name the data that would prove it, who collects it, and how often. ` +
+        "One measured claim is worth more to a reviewer than several projected ones.");
+    }
+  }
+  const asp = buckets[SCORING.BUCKET_ASPIRATIONAL].map(([n]) => n);
+  if (asp.length) {
+    act("Plan your future indicators",
+      `${list(asp.slice(0, 3))} ${asp.length === 1 ? "is" : "are"} relevant but not yet measurable. ` +
+      `Note what would make ${asp.length === 1 ? "it" : "each one"} measurable (a tool, a partner, budget, a pilot customer sharing data) and at which milestone you expect it.`);
+  }
+
+  // 5. Adoption without a commercial reason.
+  const noMoney = !drivers.length || (drivers.length === 1 && drivers[0] === "none");
+  if (enabling && noMoney) {
+    act("Give customers a reason to keep using it",
+      "Your environmental benefit only happens if customers adopt the product and change what they do, but no financial or practical benefit for them is recorded in step 1. " +
+      "Describe what they gain: lower costs, compliance, better results. That is what drives adoption, and adoption drives your impact.");
+  }
+
+  // 6. Review milestone.
+  if (!state.next_review_milestone) {
+    act("Set the next review",
+      "Pick the milestone at which you will update this assessment (step 5). It is designed to be revisited, not filed.");
+  }
+
+  // ---- Points to consider: prompts the team is free to ignore ------------
+
+  if (types.length > 1) {
+    ask("Which customer comes first?",
+      `You sell to ${types.join(" and ")}. Have you decided which segment you will prove the impact with first? ` +
+      "Each one usually asks for different evidence, so one strong case beats several partial ones.");
+  }
+  if (types.includes("B2B")) {
+    ask("Is your impact data a selling point?",
+      "Have you considered whether your business customers need environmental data for their own sustainability reporting or supplier questionnaires? " +
+      "If your product can supply it, the impact claim becomes part of the sales argument, not just the pitch deck.");
+  }
+  if (types.includes("B2C")) {
+    ask("How will you word claims to consumers?",
+      "Since 27 September 2026, EU rules (Directive 2024/825) ban generic environmental claims such as “eco-friendly” or “climate neutral” towards consumers without proof of recognised excellent environmental performance. " +
+      "Have you checked that every public claim matches a measured or clearly labelled projected figure in this report?");
+  }
+  if (types.includes("B2G")) {
+    ask("What do public buyers ask for?",
+      "Have you considered which environmental criteria public tenders in your field use (e.g. green public procurement criteria) and whether your indicators match them? " +
+      "Expect long sales cycles, so plan the evidence early.");
+  }
+  if (enabling) {
+    ask("Is the user the same person as the payer?",
+      "Have you considered who actually has to change their behaviour: the person who buys the product, or someone else (an employee, a tenant, an end user)? " +
+      "If they differ, your adoption evidence has to come from the user, not from the sale.");
+  }
+  if (enabling && drivers.includes("cost")) {
+    ask("Can one dataset show both savings?",
+      "Your customers save money through the same mechanism that saves the environment. Have you considered tracking both from the same data " +
+      "(e.g. the water bill and the m³ saved)? It makes the environmental claim far harder to dispute.");
+  }
+  if ((enabling || state.orientation === "Secondary") && !/rebound/.test(allText)) {
+    ask("What about rebound effects?",
+      "Have you considered whether efficiency gains could lead customers to use more (more hectares irrigated, more trips made)? " +
+      "Naming the risk yourself is more credible than having a reviewer raise it.");
+  }
+  if (direct && !/end.of.life|recycl|disposal|compost/.test(allText)) {
+    ask("What happens at end of life?",
+      "Have you considered the whole life cycle, not only the use phase? Production and end-of-life are often where most of the footprint sits; a screening LCA can show you where.");
+  }
+  if (state.orientation === "Secondary") {
+    ask("Do you know your own footprint?",
+      "As a commercially driven startup, your operational footprint may matter as much as the product's effect. Have you tried the quick Scope 1 + 2 estimator in step 3?");
+  }
+  if (state.stage === "Early commercialization" || state.stage === "Growth") {
+    ask("Is it time for external verification?",
+      "Have you considered an independent check (e.g. an LCA or a third-party review of your main claim) before the next funding round or a large customer contract?");
+  }
+  const projectedN = Object.values(unc).filter(u => u.level === "Projected").length;
+  if (projectedN && projectedN >= Object.keys(unc).length / 2) {
+    ask("How will investors read this?",
+      "Most of your claims are projected. Investors usually discount those heavily. Have you considered which single claim you most want measured by your next funding conversation?");
+  }
+
+  return { actions: actions.slice(0, SCORING.MAX_ACTIONS), consider: consider.slice(0, SCORING.MAX_CONSIDER) };
 };

@@ -21,6 +21,11 @@
     startup_desc: "",
     sector: "",
     stage: "Ideation",
+    // customer profile: who buys, and why (SIC consultation, Oct 2026)
+    customer_types: [],
+    customer_profile: "",
+    value_drivers: [],
+    customer_value: "",
     // null until the diagnostic questions are answered: the classification
     // is required input and must never be silently defaulted.
     mechanism: null,
@@ -70,8 +75,12 @@
   function sanitize(raw) {
     const d = DEFAULTS();
     const s = Object.assign(d, isObj(raw) ? raw : {});
-    ["startup_name", "startup_desc", "sector", "weakest_links", "next_review_milestone", "review_notes"]
+    ["startup_name", "startup_desc", "sector", "weakest_links", "next_review_milestone", "review_notes",
+      "customer_profile", "customer_value"]
       .forEach(k => { if (typeof s[k] !== "string") s[k] = s[k] == null ? "" : String(s[k]); });
+    const pick = (v, allowed) => Array.isArray(v) ? allowed.map(([k]) => k).filter(k => v.includes(k)) : [];
+    s.customer_types = pick(s.customer_types, REF.CUSTOMER_TYPES);
+    s.value_drivers = pick(s.value_drivers, REF.VALUE_DRIVERS);
     if (!REF.STAGES.includes(s.stage)) s.stage = "Ideation";
     if (!["Direct", "Enabling"].includes(s.mechanism)) s.mechanism = null;
     if (!["Primary", "Secondary"].includes(s.orientation)) s.orientation = null;
@@ -173,7 +182,8 @@
   // Progress based on content actually filled in, never on navigation.
   function stepStatus() {
     const out = {};
-    const f1 = [!!S.startup_name, !!S.sector, !!S.startup_desc, S.mechanism != null, S.orientation != null];
+    const f1 = [!!S.startup_name, !!S.sector, !!S.startup_desc, S.customer_types.length > 0,
+      !!S.customer_profile.trim(), S.value_drivers.length > 0, S.mechanism != null, S.orientation != null];
     out[1] = { pct: Math.round(100 * f1.filter(Boolean).length / f1.length), done: profileReady() };
 
     const stages = Object.values(S.pathway).flat();
@@ -283,7 +293,7 @@
         <button class="btn small block" data-action="intro">📖 Introduction &amp; guide</button>
         <button class="btn small block" data-action="restart">↺ Start a new assessment</button>
       </div>
-      <div class="footer-note">v3.0 · Review cycle v${S.assessment_version}</div>`;
+      <div class="footer-note">v3.1 · Review cycle v${S.assessment_version}</div>`;
     const pill = $("#topbar-step");
     if (pill) pill.textContent = `Step ${S.step} of 5 · ${STEP_META[S.step][0]}`;
   }
@@ -316,8 +326,9 @@
               <input type="text" id="sector" data-f="sector" value="${h(S.sector)}" placeholder="e.g., AgTech, packaging, SaaS"></div>
           </div>
           <div class="field" style="margin-bottom:0"><label for="startup_desc">Short description</label>
-            <textarea id="startup_desc" data-f="startup_desc" rows="3" placeholder="What does your startup do, and for whom? (1–3 sentences)">${h(S.startup_desc)}</textarea></div>
+            <textarea id="startup_desc" data-f="startup_desc" rows="3" placeholder="What does your startup do? (1–3 sentences)">${h(S.startup_desc)}</textarea></div>
         </div>
+        ${customerPanel()}
         <div class="panel"><h2>Diagnostic classification</h2>
           <p class="lead"><b style="color:var(--ink)">Both questions are required.</b> Your answers classify your impact mechanism and drive the whole assessment. <i>Why this matters:</i> a clear classification now makes your indicators, data, and claims more credible and defensible later.</p>
           <fieldset class="question"><legend>${h(REF.DIAGNOSTIC_MECHANISM.question)}</legend><div class="opts">${radios("mech", "mechanism", mechOpts, S.mechanism)}</div></fieldset>
@@ -339,6 +350,28 @@
           <li><b>Impact pathway</b>: the step-by-step cause-and-effect chain from what you do to the environmental impact you claim (mapped in step 2).</li>
           <li><b>Hybrid</b>: a meaningful share of the impact arises through both mechanisms; the secondary one gets a lighter check.</li></ul>`, "", true))}
       </aside></div>`;
+  }
+
+  // The customer panel: who pays, who they are, and why they would pay.
+  // An impact claim only matters if someone buys and uses the product, and
+  // the next steps in the report depend on who that is.
+  function customerPanel() {
+    const types = REF.CUSTOMER_TYPES.map(([k, label], i) =>
+      `<label class="choice" for="ctype-${i}"><input type="checkbox" id="ctype-${i}" data-f="ctype" value="${k}"${S.customer_types.includes(k) ? " checked" : ""}><span>${h(label)}</span></label>`).join("");
+    const drivers = REF.VALUE_DRIVERS.map(([k, label], i) =>
+      `<label class="choice" for="vdrv-${i}"><input type="checkbox" id="vdrv-${i}" data-f="vdriver" value="${k}"${S.value_drivers.includes(k) ? " checked" : ""}><span>${h(label)}</span></label>`).join("");
+    const mixed = S.customer_types.length > 1
+      ? `<p class="caption" style="margin:.5rem 0 0">Mixed model: <b>${h(S.customer_types.join(" + "))}</b>. The report will ask which segment you prove the impact with first.</p>` : "";
+    return `<div class="panel"><h2>Your customer</h2>
+      <p class="lead">Who pays for your product, and why? The environmental benefit only happens if someone buys and uses it, so the recommended next steps in your report depend on these answers.</p>
+      <fieldset class="question"><legend>Who are your customers? <span class="hint">(select all that apply)</span></legend><div class="opts inline">${types}</div>${mixed}</fieldset>
+      <div class="field"><label for="customer_profile">Ideal customer profile</label>
+        <textarea id="customer_profile" data-f="customer_profile" rows="2" placeholder="e.g. Mid-size vegetable farms (50–500 ha) in dry regions that irrigate from metered sources">${h(S.customer_profile)}</textarea>
+        <span class="hint">Who exactly buys it? If someone else has to use it or change their behaviour (an employee, an end user), say so.</span></div>
+      <fieldset class="question"><legend>Why would they pay for it? <span class="hint">(select all that apply)</span></legend><div class="opts">${drivers}</div></fieldset>
+      <div class="field" style="margin-bottom:0"><label for="customer_value">In one sentence: what does the customer get, and how is it linked to the environmental benefit? <span class="hint">(optional)</span></label>
+        <input type="text" id="customer_value" data-f="customer_value" value="${h(S.customer_value)}" placeholder="e.g. Lower water bills: every m³ the farm saves is also money saved."></div>
+    </div>`;
   }
 
   // Steps 2-5 depend on the name and the classification.
@@ -604,19 +637,34 @@
 
   // ============================================================= step 5 ==
 
+  function nextStepsHTML() {
+    ensurePathway();
+    const ns = SCORING.nextSteps(S);
+    const actions = ns.actions.length
+      ? `<ol class="next-list">${ns.actions.map(a => `<li><b>${h(a.title)}.</b> ${h(a.text)}</li>`).join("")}</ol>`
+      : alert("ok", "No open gaps found. Keep the assessment current at your next review milestone.");
+    const consider = ns.consider.length
+      ? `<div class="consider"><h3>Points to consider</h3><p class="caption" style="margin:0 0 .5rem">Questions worth a thought. Ignore any that do not apply.</p>
+          <ul>${ns.consider.map(c => `<li><b>${h(c.title)}</b> ${h(c.text)}</li>`).join("")}</ul></div>` : "";
+    return actions + consider;
+  }
+
   function step5() {
     ensurePathway();
     const checks = SCORING.integrityChecks(S.selected_indicators, S.uncertainty);
     const checksHTML = checks.map(([sev, msg]) => alert(sev, h(msg))).join("");
 
     return hero(5, "Review, report & export",
-      "Set the next review milestone, run the integrity checks, and export your report. This assessment is designed for updating, not for completion.", false) +
+      "See your recommended next steps, run the integrity checks, set the next review milestone and export your report. This assessment is designed for updating, not for completion.", false) +
       `<div class="cols"><div>
         <div class="panel"><h2>Review &amp; updating plan</h2>
           <div class="grid2 grid-review" style="margin-top:.8rem">
             <div class="field"><label for="milestone">Next review milestone</label>${selectHTML("milestone", 'data-f="next_review_milestone"', REF.REVIEW_MILESTONES, S.next_review_milestone, "Select a milestone…")}</div>
             <div class="field"><label for="review_notes">Notes for the next review <span class="hint">(optional)</span></label><input type="text" id="review_notes" data-f="review_notes" value="${h(S.review_notes)}"></div>
           </div></div>
+        <h2 style="font-size:1.1rem;margin:1.4rem 0 .3rem">Next steps</h2>
+        <p class="caption" style="margin:0 0 .7rem">Drawn from the gaps in this assessment, most important first. They also appear at the end of the report.</p>
+        ${live("next", () => nextStepsHTML())}
         <h2 style="font-size:1.1rem;margin:1.4rem 0 .7rem">Integrity checks</h2>
         ${checksHTML}
         <h2 style="font-size:1.1rem;margin:1.4rem 0 .7rem">Export</h2>
@@ -728,8 +776,25 @@
     const val = el.type === "checkbox" ? el.checked : el.value;
     switch (f) {
       case "startup_name": case "startup_desc": case "sector": case "weakest_links": case "review_notes":
+      case "customer_profile": case "customer_value":
         S[f] = val; return false;
       case "stage": S.stage = val; return false;
+      case "ctype": {
+        const set = new Set(S.customer_types);
+        if (val) set.add(el.value); else set.delete(el.value);
+        S.customer_types = REF.CUSTOMER_TYPES.map(([k]) => k).filter(k => set.has(k));
+        return true;
+      }
+      case "vdriver": {
+        // "no direct financial benefit" excludes the other reasons
+        let set = new Set(S.value_drivers);
+        if (val) {
+          if (el.value === "none") set = new Set(["none"]);
+          else { set.delete("none"); set.add(el.value); }
+        } else set.delete(el.value);
+        S.value_drivers = REF.VALUE_DRIVERS.map(([k]) => k).filter(k => set.has(k));
+        return true;
+      }
       case "next_review_milestone": S.next_review_milestone = val; return true;
       case "mechanism":
         S.mechanism = val;

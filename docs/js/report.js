@@ -35,6 +35,13 @@ REPORT.assemble = function (state) {
       next_review_milestone: state.next_review_milestone || "",
       review_notes: state.review_notes || "",
     },
+    customer: {
+      types: state.customer_types || [],
+      type_label: REF.customerTypeLabel(state.customer_types),
+      profile: state.customer_profile || "",
+      drivers: (state.value_drivers || []).map(k => (REF.VALUE_DRIVERS.find(([v]) => v === k) || [k, k])[1]),
+      value: state.customer_value || "",
+    },
     classification: {
       mechanism: state.mechanism,
       orientation: state.orientation,
@@ -49,6 +56,7 @@ REPORT.assemble = function (state) {
     buckets,
     uncertainty: state.uncertainty,
     integrity_checks: checks,
+    next_steps: SCORING.nextSteps(state),
     references,
     stage_note: REF.STAGE_GUIDANCE[state.stage].note,
   };
@@ -66,6 +74,16 @@ function levelCounts(r) {
 function evidenceLine(counts) {
   const parts = Object.entries(counts).map(([k, v]) => `${v} ${k.toLowerCase()}`);
   return parts.length ? parts.join(", ") : "not yet labelled";
+}
+
+// Customer lines for section 1, as [label, value] pairs (empty ones dropped).
+function customerLines(cu) {
+  return [
+    ["Customer type", cu.type_label],
+    ["Ideal customer profile", cu.profile],
+    ["Why they pay", cu.drivers.join("; ")],
+    ["Customer value & environmental link", cu.value],
+  ].filter(([, v]) => v);
 }
 
 const INDICATOR_FIELDS = [["unit", "Unit"], ["current_value", "Current value"], ["target", "Target"],
@@ -88,9 +106,11 @@ REPORT.toMarkdown = function (r) {
   L.push("## Executive Summary");
   L.push(`- **Classification:** ${c.label}`);
   L.push(`- **Primary unit of analysis:** ${c.unit_of_analysis}`);
+  if (r.customer.type_label) L.push(`- **Customer:** ${r.customer.type_label}`);
   L.push(`- **Core indicator set:** ${core.length} indicator(s)` + (core.length ? ": " + core.map(([n]) => n).join("; ") : ""));
   if (Object.keys(counts).length) L.push(`- **Evidence base:** ${evidenceLine(counts)}`);
   L.push(`- **Integrity checks:** ${warn.length} warning(s)` + (warn.length ? ". See Section 5" : ""));
+  if (r.next_steps.actions.length) L.push(`- **Next steps:** ${r.next_steps.actions.length} recommended. See Section 6`);
   if (m.next_review_milestone) L.push(`- **Next scheduled review:** ${m.next_review_milestone}`);
   L.push("");
 
@@ -99,6 +119,12 @@ REPORT.toMarkdown = function (r) {
   L.push(`- **Value proposition orientation:** ${c.orientation}`);
   L.push(`- **Resulting type:** ${c.label}`);
   L.push(`- ${c.blurb}\n`);
+  const cuL = customerLines(r.customer);
+  if (cuL.length) {
+    L.push("**Customer**");
+    cuL.forEach(([k, v]) => L.push(`- **${k}:** ${v}`));
+    L.push("");
+  }
   L.push(`*Stage guidance (${m.stage}):* ${r.stage_note}\n`);
 
   L.push("## 2. Impact Pathway (Theory of Change)");
@@ -144,7 +170,18 @@ REPORT.toMarkdown = function (r) {
   r.integrity_checks.forEach(([s, msg]) => L.push(`- ${sym[s]} ${msg}`));
   L.push("");
 
-  L.push("## 6. Review & Updating Plan");
+  L.push("## 6. Next Steps & Points to Consider");
+  if (r.next_steps.actions.length) {
+    L.push("**Recommended next steps**");
+    r.next_steps.actions.forEach((a, i) => L.push(`${i + 1}. **${a.title}.** ${a.text}`));
+  } else L.push("_No open gaps found._");
+  if (r.next_steps.consider.length) {
+    L.push("\n**Points to consider** (questions worth a thought; ignore any that do not apply)");
+    r.next_steps.consider.forEach(cq => L.push(`- **${cq.title}** ${cq.text}`));
+  }
+  L.push("");
+
+  L.push("## 7. Review & Updating Plan");
   L.push("This assessment is designed for updating, not for completion. It should be revisited at defined milestones rather than filed as a one-time exercise.");
   L.push(`- **Next review milestone:** ${m.next_review_milestone || "_(not set)_"}`);
   if (m.review_notes) L.push(`- **Notes:** ${m.review_notes}`);
@@ -202,8 +239,10 @@ REPORT.toHtmlBody = function (r) {
     `<b>Core indicator set:</b> ${core.length} indicator(s)` + (core.length ? ": " + core.map(([n]) => esc(n)).join("; ") : ""),
     `<b>Evidence base:</b> ${esc(evidenceLine(levelCounts(r)))}`,
     `<b>Integrity checks:</b> ${warnN} warning(s)`,
+  ].concat(r.customer.type_label ? [`<b>Customer:</b> ${esc(r.customer.type_label)}`] : [],
+    r.next_steps.actions.length ? [`<b>Next steps:</b> ${r.next_steps.actions.length} recommended (Section 6)`] : [], [
     `<b>Next scheduled review:</b> ${esc(m.next_review_milestone) || "(not set)"}`,
-  ]));
+  ])));
 
   P.push("<h2>1. Startup Profiling &amp; Type Classification</h2>");
   P.push(li([
@@ -211,6 +250,11 @@ REPORT.toHtmlBody = function (r) {
     `<b>Value proposition orientation:</b> ${esc(c.orientation)}`,
     `<b>Resulting type:</b> ${esc(c.label)}. ${esc(c.blurb)}`,
   ]));
+  const cuH = customerLines(r.customer);
+  if (cuH.length) {
+    P.push("<h3>Customer</h3>");
+    P.push(li(cuH.map(([k, v]) => `<b>${esc(k)}:</b> ${esc(v)}`)));
+  }
   P.push(`<p class="meta">Stage guidance (${esc(m.stage)}): ${esc(r.stage_note)}</p>`);
 
   P.push("<h2>2. Impact Pathway (Theory of Change)</h2>");
@@ -253,7 +297,17 @@ REPORT.toHtmlBody = function (r) {
   const cl = { warning: "warn", ok: "ok", info: "info" }, sym = { warning: "⚠", ok: "✔", info: "ℹ" };
   P.push(li(r.integrity_checks.map(([s, msg]) => `<span class="${cl[s]}">${sym[s]} ${esc(msg)}</span>`)));
 
-  P.push("<h2>6. Review &amp; Updating Plan</h2>");
+  P.push("<h2>6. Next Steps &amp; Points to Consider</h2>");
+  P.push("<h3>Recommended next steps</h3>");
+  P.push(r.next_steps.actions.length
+    ? "<ol>" + r.next_steps.actions.map(a => `<li><b>${esc(a.title)}.</b> ${esc(a.text)}</li>`).join("") + "</ol>"
+    : "<p><i>No open gaps found.</i></p>");
+  if (r.next_steps.consider.length) {
+    P.push("<h3>Points to consider</h3><p class=\"meta\">Questions worth a thought. Ignore any that do not apply.</p>");
+    P.push(li(r.next_steps.consider.map(cq => `<b>${esc(cq.title)}</b> ${esc(cq.text)}`)));
+  }
+
+  P.push("<h2>7. Review &amp; Updating Plan</h2>");
   P.push("<p>This assessment is designed for updating, not for completion; it should be revisited at defined milestones rather than filed as a one-time exercise.</p>");
   P.push(li([`<b>Next review milestone:</b> ${esc(m.next_review_milestone) || "(not set)"}`]
     .concat(m.review_notes ? [`<b>Notes:</b> ${esc(m.review_notes)}`] : [])));
@@ -337,6 +391,8 @@ REPORT.toDocx = async function (r) {
     `Core indicator set: ${core.length} indicator(s)` + (core.length ? " — " + core.map(([n]) => n).join("; ") : ""),
     `Evidence base: ${evidenceLine(levelCounts(r))}`,
     `Integrity checks: ${warnN} warning(s)` + (warnN ? " — see Section 5" : ""),
+    ...(r.customer.type_label ? [`Customer: ${r.customer.type_label}`] : []),
+    ...(r.next_steps.actions.length ? [`Next steps: ${r.next_steps.actions.length} recommended — see Section 6`] : []),
     `Next scheduled review: ${m.next_review_milestone || "(not set)"}`,
   ].forEach(t => children.push(bullet(t)));
 
@@ -346,6 +402,11 @@ REPORT.toDocx = async function (r) {
   children.push(bullet(`Value proposition orientation: ${c.orientation}`));
   children.push(bullet(`Resulting type: ${c.label}`));
   children.push(new Paragraph({ indent: { left: 200 }, children: [new TextRun(c.blurb)] }));
+  const cuD = customerLines(r.customer);
+  if (cuD.length) {
+    children.push(h("Customer", HeadingLevel.HEADING_3));
+    cuD.forEach(([k, v]) => children.push(bullet([new TextRun({ text: `${k}: `, bold: true }), new TextRun(v)])));
+  }
   children.push(new Paragraph({
     children: [new TextRun({ text: `Stage guidance (${m.stage}): ${r.stage_note}`, italics: true, size: 19, color: DOCX_C.grey })],
   }));
@@ -426,8 +487,22 @@ REPORT.toDocx = async function (r) {
   const chkSym = { warning: "⚠", info: "ℹ", ok: "✓" };
   r.integrity_checks.forEach(([s, msg]) => children.push(bullet([new TextRun({ text: `${chkSym[s]}  ${msg}`, color: chkColor[s] })])));
 
+  // Next steps & points to consider
+  children.push(h("6. Next Steps & Points to Consider", HeadingLevel.HEADING_1));
+  children.push(h("Recommended next steps", HeadingLevel.HEADING_2));
+  if (!r.next_steps.actions.length) children.push(new Paragraph("No open gaps found."));
+  r.next_steps.actions.forEach((a, i) => children.push(new Paragraph({
+    indent: { left: 360, hanging: 360 },
+    children: [new TextRun({ text: `${i + 1}.  ${a.title}. `, bold: true, color: DOCX_C.green }), new TextRun(a.text)],
+  })));
+  if (r.next_steps.consider.length) {
+    children.push(h("Points to consider", HeadingLevel.HEADING_2));
+    children.push(new Paragraph({ children: [new TextRun({ text: "Questions worth a thought. Ignore any that do not apply.", italics: true, size: 19, color: DOCX_C.grey })] }));
+    r.next_steps.consider.forEach(cq => children.push(bullet([new TextRun({ text: `${cq.title}  `, bold: true }), new TextRun(cq.text)])));
+  }
+
   // Review plan
-  children.push(h("6. Review & Updating Plan", HeadingLevel.HEADING_1));
+  children.push(h("7. Review & Updating Plan", HeadingLevel.HEADING_1));
   children.push(new Paragraph("This assessment is designed for updating, not for completion: it should be revisited at defined milestones rather than filed as a one-time exercise."));
   children.push(bullet(`Next review milestone: ${m.next_review_milestone || "(not set)"}`));
   if (m.review_notes) children.push(bullet(`Notes: ${m.review_notes}`));
@@ -481,6 +556,7 @@ REPORT.toDocx = async function (r) {
 
 REPORT.PERSISTED_KEYS = [
   "startup_name", "startup_desc", "sector", "stage",
+  "customer_types", "customer_profile", "value_drivers", "customer_value",
   "mechanism", "orientation", "is_hybrid", "secondary_mechanism",
   "pathway", "weakest_links",
   "selected_indicators", "custom_indicators", "uncertainty",

@@ -1,6 +1,24 @@
 **Live app (GitHub Pages):** https://sweetheartapi.github.io/env_impact_tool/
 
-# Startup Environmental Impact Assessment Tool (v3.0)
+# Startup Environmental Impact Assessment Tool (v3.1)
+
+## v3.1: customer profile and next steps (feedback from SIC, Oct 2026)
+
+Changes to the web version, from the expert consultation with the
+Central Bohemian Innovation Centre (SIC):
+
+- **Customer profile in step 1.** Who buys the product (B2B, B2C, B2G or a
+  mix), the ideal customer profile, why they would pay, and how that links
+  to the environmental benefit. Optional, so existing save files still load.
+- **Next steps and points to consider.** Step 5 and every report format now
+  end with concrete next steps drawn from the gaps in the assessment (weakest
+  links, missing baselines, unmeasured core claims, aspirational indicators,
+  a missing customer or commercial reason to adopt) and with "Have you
+  considered…?" prompts that depend on the customer type, impact mechanism
+  and stage. The rules are in `SCORING.nextSteps` in `docs/js/framework.js`.
+- Save files gain four optional keys: `customer_types`, `customer_profile`,
+  `value_drivers`, `customer_value`. Older files load without them.
+
 
 ## v3.0: static web version on GitHub Pages
 

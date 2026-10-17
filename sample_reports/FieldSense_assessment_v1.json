@@ -7,6 +7,15 @@
     "startup_desc": "FieldSense sells wireless soil-moisture sensors and a mobile irrigation scheduling app that helps small and mid-size farms cut water use without losing yield.",
     "sector": "AgTech / precision irrigation",
     "stage": "Validation / MVP",
+    "customer_types": [
+      "B2B"
+    ],
+    "customer_profile": "Small and mid-size vegetable and orchard farms (20–500 ha) in dry regions that irrigate from metered wells or paid water sources. The farmer or farm manager decides on irrigation and pays for the subscription.",
+    "value_drivers": [
+      "cost",
+      "performance"
+    ],
+    "customer_value": "Lower water and pumping costs with stable yields: every m³ of water the farm does not apply is also money saved.",
     "mechanism": "Enabling",
     "orientation": "Primary",
     "is_hybrid": false,
