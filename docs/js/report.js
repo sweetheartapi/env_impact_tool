@@ -198,6 +198,7 @@ REPORT.toMarkdown = function (r) {
     if (u.claim) L.push(`- **Claim as stated:** ${u.claim}`);
     L.push(`- **Baseline:** ${u.baseline || "_(not stated)_"}`);
     L.push(`- **Evidence and data sources:** ${u.sources || "_(not stated)_"}`);
+    L.push(`- **Boundary:** ${u.boundary || "_(not stated)_"}`);
     if (row.stage) L.push(`- **Relies on pathway step:** ${row.link}. Assumption: ${row.stage.assumption || "_(none stated)_"} (evidence: ${row.stage.evidence || "Not rated"})`);
     L.push(`- **Assumptions:** ${u.assumptions || "_(not filled in)_"}`);
     L.push(`- **Conditions under which the estimate could differ significantly:** ${u.conditions || "_(not filled in)_"}`);
@@ -386,6 +387,7 @@ REPORT.toHtmlBody = function (r) {
     if (u.claim) rows.push(`<b>Claim as stated:</b> ${esc(u.claim)}`);
     rows.push(`<b>Baseline:</b> ${esc(u.baseline || "(not stated)")}`);
     rows.push(`<b>Evidence and data sources:</b> ${esc(u.sources || "(not stated)")}`);
+    rows.push(`<b>Boundary:</b> ${esc(u.boundary || "(not stated)")}`);
     if (row.stage) rows.push(`<b>Relies on pathway step:</b> ${esc(row.link)}. Assumption: ${esc(row.stage.assumption || "(none stated)")} (evidence: ${esc(row.stage.evidence || "Not rated")})`);
     rows.push(`<b>Assumptions:</b> ${esc(u.assumptions || "(not filled in)")}`);
     rows.push(`<b>Conditions that could change the estimate:</b> ${esc(u.conditions || "(not filled in)")}`);
@@ -649,6 +651,7 @@ REPORT.toDocx = async function (r, extras = {}) {
     if (u.claim) children.push(labelled("Claim as stated: ", u.claim));
     children.push(labelled("Baseline: ", u.baseline || "(not stated)"));
     children.push(labelled("Evidence and data sources: ", u.sources || "(not stated)"));
+    children.push(labelled("Boundary: ", u.boundary || "(not stated)"));
     if (row.stage) children.push(labelled("Relies on pathway step: ", `${row.link}. Assumption: ${row.stage.assumption || "(none stated)"} (evidence: ${row.stage.evidence || "Not rated"})`));
     children.push(labelled("Assumptions: ", u.assumptions || "(not filled in)"));
     children.push(labelled("Conditions that could change the estimate: ", u.conditions || "(not filled in)"));

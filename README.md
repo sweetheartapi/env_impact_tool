@@ -83,11 +83,18 @@ Central Bohemian Innovation Centre (SIC):
   accelerators and incubators; impact-oriented investors; conventional
   investors where environmental impact is relevant), instead of framing
   the report mainly as something to show investors.
+- **Ready-to-explore demo.** "Explore a finished example" on the homepage
+  opens the fictional FieldSense assessment (`docs/samples/FieldSense.json`)
+  in one click, with a banner and a "Start your own assessment" button.
+  It asks before replacing a real assessment in progress.
+- **Calculation boundaries.** Each claim in step 4 records what the figure
+  includes and leaves out (period, sites or customers, life-cycle stages);
+  measured or modelled claims without one get a note.
 - Save files gain optional keys: `customer_types`, `revenue_models`,
   `customer_profile` (the buyer), `customer_user`, `behaviour_actor`,
   `value_drivers`, `customer_value`, `custom_kinds`, `change` on each pathway
   stage, `kind` on each selected indicator, and `quality`, `baseline`,
-  `sources` on each claim, and `alignment`.
+  `sources`, `boundary` on each claim, and `alignment`.
   Older files load without them.
 
 

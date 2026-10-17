@@ -431,6 +431,8 @@ SCORING.claimGaps = function (name, u, entry, pathway) {
     add("warning", `A ${level.toLowerCase()} claim needs its data source named.`);
   if (!q)
     add("info", "Evidence quality is not assessed yet.");
+  if ((level === "Measured" || level === "Modelled") && claim && !(u.boundary || "").trim())
+    add("info", "State the boundary of the figure: what it includes and leaves out (period, sites or customers, life-cycle stages). Two honest figures can differ only because their boundaries differ.");
   const st = SCORING.pathwayStage(pathway, entry && entry.pathway_link);
   if (st && st.evidence === "Weak (assumption only)" && (level === "Measured" || q === "high"))
     add("info", `This indicator evidences “${st.stage}”, which step 2 still rates as weak. If this evidence now supports it, update the rating in step 2.`);

@@ -45,6 +45,7 @@
     next_review_milestone: "",
     review_notes: "",
     alignment: {},        // impact-business alignment: key -> {status, note}
+    demo: false,          // true while exploring the built-in FieldSense example (never exported)
     estimator: {},
   });
 
@@ -103,6 +104,7 @@
       if (!REF.FREQUENCIES.includes(e.frequency || "")) e.frequency = "";
     });
     s.assessment_version = parseInt(s.assessment_version, 10) || 1;
+    s.demo = !!s.demo;
     s.step = [1, 2, 3, 4, 5].includes(s.step) ? s.step : 1;
     return s;
   }
@@ -288,6 +290,7 @@
     $("#sidebar").innerHTML = `
       <div class="brand" data-action="intro" title="Introduction & guide"><div class="logo">${LOGO_TILE}</div>
         <div><div class="word">EIA</div><div class="sub">Startup Environmental<br>Impact Assessment</div></div></div>
+      ${S.demo ? `<div class="demo-note"><b>Example: FieldSense</b>A fictional startup with a complete assessment. Changes stay in this browser.<button class="btn small block" data-action="restart">Start your own assessment</button></div>` : ""}
       <div class="eyebrow">Workflow</div>
       <ol class="nav">${nav}</ol>
       <div class="sidecard"><div class="progress-head"><b>Assessment progress</b><span>${pct}%</span></div>
@@ -655,7 +658,7 @@
         level: REF.CONFIDENCE_LEVELS[u.level] ? u.level : "Modelled",
         claim: u.claim || "", assumptions: u.assumptions || "", conditions: u.conditions || "",
         quality: REF.EVIDENCE_QUALITY.some(([k]) => k === u.quality) ? u.quality : "",
-        baseline: u.baseline || "", sources: u.sources || "",
+        baseline: u.baseline || "", sources: u.sources || "", boundary: u.boundary || "",
       };
     });
     return toLabel;
@@ -713,6 +716,7 @@
           <div class="field" style="margin:0"><label for="${id}-b">Baseline: compared with what?</label><input type="text" id="${id}-b" ${a("baseline")} value="${h(u.baseline)}" placeholder="e.g. Same farms' metered use in the 2025 season"></div>
           <div class="field" style="margin:0"><label for="${id}-s">Evidence and data sources</label><input type="text" id="${id}-s" ${a("sources")} value="${h(u.sources)}" placeholder="e.g. Pilot survey, n = 22; app usage logs"></div>
         </div>
+        <div class="field"><label for="${id}-y">Boundary: what the figure includes and leaves out <span class="hint">(scope, period, which customers or sites, which life-cycle stages)</span></label><input type="text" id="${id}-y" ${a("boundary")} value="${h(u.boundary)}" placeholder="e.g. Water applied on 22 pilot farms, 2026 season; excludes pumping energy and farms that left the pilot"></div>
         <div class="field"><label for="${id}-a">Assumptions behind the number</label><textarea id="${id}-a" rows="2" ${a("assumptions")}>${h(u.assumptions)}</textarea></div>
         <div class="field"><label for="${id}-k">Conditions under which the estimate could be significantly different</label><textarea id="${id}-k" rows="2" ${a("conditions")}>${h(u.conditions)}</textarea></div>
         ${live(`gaps-${id}`, () => {
@@ -1060,9 +1064,10 @@
     switch (a) {
       case "start": S.seen_welcome = true; save(); render(); window.scrollTo(0, 0); break;
       case "resume-file": case "import": $("#import-file").click(); break;
+      case "demo": loadDemo(); break;
       case "intro": S.seen_welcome = false; save(); closeNav(); render(); window.scrollTo(0, 0); break;
       case "restart":
-        if (confirm("Start a new assessment? Everything entered so far will be cleared from this browser. Download the JSON save file first if you want to keep it.")) {
+        if (S.demo || confirm("Start a new assessment? Everything entered so far will be cleared from this browser. Download the JSON save file first if you want to keep it.")) {
           S = DEFAULTS(); S.seen_welcome = true; UI.open = {}; UI.tab3 = "select";
           save(); closeNav(); render(); window.scrollTo(0, 0);
           toast("Started a new assessment.");
@@ -1165,6 +1170,30 @@
     w.document.open();
     w.document.write(REPORT.toHtml(assembled()).replace("</body>", "<script>window.onload=function(){setTimeout(function(){window.print()},250)}<\/script></body>"));
     w.document.close();
+  }
+
+  // Load the fictional FieldSense assessment so a visitor can explore every
+  // step and the report without typing. Replaces what is in this browser,
+  // so ask first when a real assessment is in progress.
+  async function loadDemo() {
+    if (S.startup_name.trim() && !S.demo &&
+        !confirm(`Open the FieldSense example? Your assessment for “${S.startup_name}” in this browser will be replaced. Download its JSON save file first if you want to keep it.`)) return;
+    try {
+      const res = await fetch("samples/FieldSense.json", { cache: "no-cache" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const payload = await res.json();
+      const next = DEFAULTS();
+      REPORT.PERSISTED_KEYS.forEach(k => { const v = payload.state[k]; if (v !== undefined && v !== null) next[k] = v; });
+      next.seen_welcome = true;
+      next.demo = true;
+      next.step = 1;
+      S = sanitize(next);
+      UI.open = {}; UI.tab3 = "select";
+      save(); closeNav(); render(); window.scrollTo(0, 0);
+      toast("Opened the FieldSense example. Click through the steps, or jump to step 5 for the results.");
+    } catch (err) {
+      toast("Could not open the example: " + (err && err.message || err), true);
+    }
   }
 
   function handleImport(input) {
