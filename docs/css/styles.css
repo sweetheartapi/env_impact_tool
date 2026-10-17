@@ -382,3 +382,13 @@ details.exp > .body { padding: 0 1rem 1rem; border-top: 1px solid var(--border);
 .question .opts.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 @media (max-width: 640px) { .question .opts.two { grid-template-columns: minmax(0, 1fr); } }
 .sub-h { font-size: 1rem; margin: 1.2rem 0 .3rem; }
+
+/* pathway diagram (step 2) */
+.diagram-wrap { overflow-x: auto; margin: .2rem 0 .8rem; border-radius: .7rem; }
+.diagram-wrap svg { display: block; width: 100%; min-width: 640px; height: auto; }
+.diagram-track { font-weight: 700; font-size: .9rem; margin: .6rem 0 .3rem; }
+.stage-card.customer-step { border-left: 4px solid #D9661F; }
+.dep-badge {
+  display: inline-block; margin-left: .4rem; padding: .05rem .55rem; border-radius: 999px;
+  background: #D9661F; color: #fff; font-size: .72rem; font-weight: 700; vertical-align: middle;
+}

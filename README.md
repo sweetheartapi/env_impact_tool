@@ -21,9 +21,19 @@ Central Bohemian Innovation Centre (SIC):
   a missing customer or commercial reason to adopt) and with "Have you
   considered…?" prompts that depend on the customer type, impact mechanism
   and stage. The rules are in `SCORING.nextSteps` in `docs/js/framework.js`.
+- **Cause-and-effect diagram in step 2.** The impact pathway is drawn in
+  three lanes: what the startup controls, what customers and users must do,
+  and the environmental effect. Each pathway step has a new question, "Does
+  this step depend on customers?" (no / adoption / behaviour change),
+  pre-filled from the template. Customer steps are marked in orange, and the
+  arrow where the technology hands over to customers is highlighted: a good
+  technological solution is not yet a viable product. The diagram is also in
+  the Word and HTML/PDF reports (`docs/js/diagram.js`). If no customer step
+  has solid evidence, step 2 warns and the report adds a next step.
 - Save files gain optional keys: `customer_types`, `revenue_models`,
   `customer_profile` (the buyer), `customer_user`, `behaviour_actor`,
-  `value_drivers`, `customer_value`. Older files load without them.
+  `value_drivers`, `customer_value`, and `change` on each pathway stage.
+  Older files load without them.
 
 
 ## v3.0: static web version on GitHub Pages

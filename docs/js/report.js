@@ -141,8 +141,11 @@ REPORT.toMarkdown = function (r) {
       L.push(`  - Description: ${s.description || "_(not filled in)_"}`);
       L.push(`  - Underlying assumption: ${s.assumption || "_(not stated)_"}`);
       L.push(`  - Evidence strength: ${s.evidence || "Not rated"}`);
+      if (s.change && s.change !== "none") L.push(`  - Depends on customers: ${REF.DEPENDENCE_SHORT[s.change]}`);
     });
   });
+  const custMd = Object.values(r.pathway).flat().filter(s => s.change && s.change !== "none");
+  L.push(`\n**Steps that depend on customers:** ` + (custMd.length ? custMd.map(s => `${s.stage} (${REF.DEPENDENCE_SHORT[s.change].toLowerCase()})`).join("; ") : "none marked"));
   if (r.weakest_links) L.push(`\n**Weakest link(s) in the chain:** ${r.weakest_links}`);
   L.push("");
 
@@ -224,7 +227,10 @@ ul { padding-left: 1.3rem; } li { margin: .25rem 0; }
 .b-Measured { background: #2e6b4f; } .b-Modelled { background: #b8860b; } .b-Projected { background: #8a5a9e; }
 .warn { color: #a33; } .ok { color: #2e6b4f; } .info { color: #345d8a; }
 footer { margin-top: 3rem; font-size: .85rem; color: #5a6b62; border-top: 1px solid #cfe0d6; padding-top: .8rem; }
-@media print { body { margin: 0 auto; } }
+.diagram svg { width: 100%; height: auto; display: block; margin: .4rem 0 .8rem; }
+.dep { display: inline-block; padding: .05rem .5rem; border-radius: 1rem; font-size: .75rem;
+       font-family: Arial, sans-serif; background: #D9661F; color: #fff; vertical-align: middle; }
+@media print { body { margin: 0 auto; } .diagram { break-inside: avoid; } }
 `;
 
 REPORT.toHtmlBody = function (r) {
@@ -266,7 +272,11 @@ REPORT.toHtmlBody = function (r) {
   P.push("<h2>2. Impact Pathway (Theory of Change)</h2>");
   Object.entries(r.pathway).forEach(([track, stages]) => {
     P.push(`<h3>${esc(track)}</h3>`);
-    P.push(li(stages.map(s => `<b>${esc(s.stage)}</b><br>Description: ${esc(s.description || "(not filled in)")}<br>` +
+    if (typeof PATHWAY_DIAGRAM !== "undefined" && stages.length)
+      P.push(`<div class="diagram">${PATHWAY_DIAGRAM.svg(track, stages, { actor: r.customer.actor }).svg}</div>`);
+    P.push(li(stages.map(s => `<b>${esc(s.stage)}</b>` +
+      (s.change && s.change !== "none" ? ` <span class="dep">${esc(REF.DEPENDENCE_SHORT[s.change])}</span>` : "") +
+      `<br>Description: ${esc(s.description || "(not filled in)")}<br>` +
       `Assumption: ${esc(s.assumption || "(not stated)")}<br>Evidence strength: ${esc(s.evidence || "Not rated")}`)));
   });
   if (r.weakest_links) P.push(`<p><b>Weakest link(s):</b> ${esc(r.weakest_links)}</p>`);
@@ -345,12 +355,13 @@ const DOCX_C = {
   blue: "34608A", grey: "5A6B62", light: "EAF2ED", ink: "1C2A22",
 };
 
-REPORT.toDocx = async function (r) {
+// extras.diagrams: {trackName: {data: Uint8Array (PNG), width, height}}
+REPORT.toDocx = async function (r, extras = {}) {
   const D = window.docx;
   if (!D) throw new Error("the Word export library did not load");
   const { Document, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell,
     WidthType, ShadingType, AlignmentType, Footer, PageNumber, TableOfContents,
-    PageBreak, BorderStyle, Packer } = D;
+    PageBreak, BorderStyle, Packer, ImageRun } = D;
   const m = r.meta, c = r.classification;
   const children = [];
 
@@ -421,8 +432,19 @@ REPORT.toDocx = async function (r) {
   children.push(h("2. Impact Pathway (Theory of Change)", HeadingLevel.HEADING_1));
   Object.entries(r.pathway).forEach(([track, stages]) => {
     children.push(h(track, HeadingLevel.HEADING_2));
+    const dg = (extras.diagrams || {})[track];
+    if (dg && ImageRun) {
+      const w = 620;
+      children.push(new Paragraph({
+        children: [new ImageRun({ type: "png", data: dg.data, transformation: { width: w, height: Math.round(w * dg.height / dg.width) } })],
+      }));
+    }
     stages.forEach(s => {
-      children.push(h(s.stage, HeadingLevel.HEADING_3));
+      const dep = s.change && s.change !== "none";
+      children.push(new Paragraph({
+        heading: HeadingLevel.HEADING_3,
+        children: [new TextRun(s.stage)].concat(dep ? [new TextRun({ text: `  [${REF.DEPENDENCE_SHORT[s.change].toUpperCase()}]`, bold: true, color: "D9661F" })] : []),
+      }));
       children.push(bullet(`Description: ${s.description || "(not filled in)"}`));
       children.push(bullet(`Underlying assumption: ${s.assumption || "(not stated)"}`));
       children.push(bullet(`Evidence strength: ${s.evidence || "Not rated"}`));

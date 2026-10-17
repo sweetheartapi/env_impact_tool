@@ -155,7 +155,7 @@ REF.PATHWAY_TEMPLATES = {
       stages: [
         ["Activities: product design & development", "What design choices create the environmental improvement?"],
         ["Outputs: production", "What is produced, from what materials, with what process?"],
-        ["Outcomes: use phase", "What happens when the product is used? What does it replace?"],
+        ["Outcomes: use phase", "What happens when the product is used? What does it replace?", "adoption"],
         ["Impact: full life-cycle environmental effect", "What is the net environmental effect across the life cycle, incl. end-of-life?"],
       ],
     }],
@@ -167,8 +167,8 @@ REF.PATHWAY_TEMPLATES = {
       track: "Adoption chain",
       stages: [
         ["Activities: product features / service delivered", "What exactly does the product enable users to do differently?"],
-        ["Outputs: customer adoption", "Who adopts it, at what rate, and how is adoption evidenced?"],
-        ["Outcomes: customer behavior change", "What behavior actually changes? How do you know users follow through?"],
+        ["Outputs: customer adoption", "Who adopts it, at what rate, and how is adoption evidenced?", "adoption"],
+        ["Outcomes: customer behavior change", "What behavior actually changes? How do you know users follow through?", "behaviour"],
         ["Impact: avoided environmental harm", "What environmental harm is avoided per unit of changed behavior, relative to what baseline?"],
       ],
     }],
@@ -188,14 +188,25 @@ REF.PATHWAY_TEMPLATES = {
       {
         track: "Track B: Product/service externalities",
         stages: [
-          ["Activities: product or service in the market", "What does deployment of your product cause in the world?"],
-          ["Outcomes: induced changes", "Positive or negative environmental changes induced in customers or systems (incl. rebound effects)."],
+          ["Activities: product or service in the market", "What does deployment of your product cause in the world?", "adoption"],
+          ["Outcomes: induced changes", "Positive or negative environmental changes induced in customers or systems (incl. rebound effects).", "behaviour"],
           ["Impact: net externality", "Net environmental externality of the product/service at current scale."],
         ],
       },
     ],
   },
 };
+
+// Each stage may carry a third element: the default answer to "does this
+// step depend on customers?" ("adoption" = they must buy / take it up,
+// "behaviour" = they or their users must do things differently). The user
+// can change it per stage in step 2.
+REF.CUSTOMER_DEPENDENCE = [
+  ["none", "No: this is within our control"],
+  ["adoption", "Yes: customers must buy or adopt it"],
+  ["behaviour", "Yes: customers or users must change behaviour"],
+];
+REF.DEPENDENCE_SHORT = { adoption: "Adoption needed", behaviour: "Behaviour change needed" };
 
 REF.EVIDENCE = ["Not rated", "Weak (assumption only)", "Moderate (some evidence)", "Strong (validated / observed)"];
 
@@ -469,6 +480,19 @@ SCORING.nextSteps = function (state) {
     }
     act("Test the weakest link", text);
   });
+
+  // 2b. The customer side of the chain (SIC consultation: a good
+  // technological solution is not necessarily a viable product).
+  const custSteps = stagesFlat.filter(s => s.change === "adoption" || s.change === "behaviour");
+  if (stagesFlat.length && !custSteps.length && enabling) {
+    act("Mark the steps that depend on customers",
+      "Your impact depends on adoption, but no step in your pathway is marked as depending on customers (step 2). Mark where customers must buy the product or change what they do, so the diagram and the evidence show it.");
+  } else if (custSteps.length && !custSteps.some(s => /^(Moderate|Strong)/.test(s.evidence || ""))) {
+    act("Prove the customer side, not only the technology",
+      `${list(custSteps.map(s => s.stage))} ${custSteps.length === 1 ? "depends" : "depend"} on customers and ${custSteps.length === 1 ? "has" : "have"} no solid evidence yet. ` +
+      "A product that works technically produces no impact if nobody adopts it or uses it as intended. Get evidence from real customers first: paid pilots, letters of intent, usage data" +
+      (actor ? `, and observation of ${short(actor).replace(/\.$/, "")}` : "") + ".");
+  }
 
   // 3. Pathway stages left empty.
   const empty = stagesFlat.filter(s => !(s.description || "").trim());

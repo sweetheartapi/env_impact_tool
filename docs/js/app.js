@@ -150,13 +150,15 @@
     templateTracks().forEach(t => {
       const existing = {};
       (S.pathway[t.track] || []).forEach(s => { existing[s.stage] = s; });
-      out[t.track] = t.stages.map(([stage]) => {
+      out[t.track] = t.stages.map(([stage, , gate]) => {
         const e = existing[stage] || {};
         return {
           stage,
           description: e.description || "",
           assumption: e.assumption || "",
           evidence: REF.EVIDENCE.includes(e.evidence) ? e.evidence : "Not rated",
+          // does this step depend on customers? default from the template
+          change: REF.CUSTOMER_DEPENDENCE.some(([k]) => k === e.change) ? e.change : (gate || "none"),
         };
       });
     });
@@ -402,6 +404,29 @@
 
   // ============================================================= step 2 ==
 
+  // The pathway diagram with a plain-language reading of the customer side.
+  function diagramHTML() {
+    const actor = S.behaviour_actor.trim();
+    let out = "";
+    Object.entries(S.pathway).forEach(([track, stages]) => {
+      const d = PATHWAY_DIAGRAM.svg(track, stages, { actor });
+      if (Object.keys(S.pathway).length > 1) out += `<p class="diagram-track">${h(track)}</p>`;
+      out += `<div class="diagram-wrap">${d.svg}</div>`;
+    });
+    const flat = Object.values(S.pathway).flat();
+    const cust = flat.filter(s => s.change && s.change !== "none");
+    const solid = cust.filter(s => /^(Moderate|Strong)/.test(s.evidence || ""));
+    if (!cust.length) {
+      out += alert("info", "No step is marked as depending on customers. If your impact needs anyone to buy, adopt or use the product differently, mark that step below. Most impact pathways have at least one.");
+    } else if (!solid.length) {
+      out += alert("warning", `<b>${cust.length} of ${flat.length} steps depend on customers, and none has solid evidence yet:</b> ${h(cust.map(s => s.stage).join("; "))}. ` +
+        "Your technology can work exactly as designed and still produce no impact if these steps fail. A good technological solution is not yet a viable product.");
+    } else {
+      out += alert("ok", `<b>${cust.length} of ${flat.length} steps depend on customers;</b> ${solid.length} of them ${solid.length === 1 ? "has" : "have"} at least moderate evidence.`);
+    }
+    return out;
+  }
+
   function step2() {
     ensurePathway();
     const cls = classification();
@@ -412,19 +437,23 @@
       stages.forEach((s, i) => {
         const id = `pw-${ti}-${i}`;
         const attrs = k => `data-f="pw" data-track="${h(track)}" data-i="${i}" data-k="${k}"`;
-        tracks += `<div class="panel stage-card"><p class="stage-name">${h(s.stage)}</p><p class="caption">${h(stageHint(track, s.stage))}</p>
+        const dep = s.change && s.change !== "none";
+        tracks += `<div class="panel stage-card${dep ? " customer-step" : ""}"><p class="stage-name">${h(s.stage)}${dep ? ` <span class="dep-badge">${h(REF.DEPENDENCE_SHORT[s.change])}</span>` : ""}</p><p class="caption">${h(stageHint(track, s.stage))}</p>
           <div class="field"><label for="${id}-d">Description</label><textarea id="${id}-d" rows="2" ${attrs("description")}>${h(s.description)}</textarea></div>
           <div class="grid-3-2">
             <div class="field"><label for="${id}-a">Assumption linking this step to the next</label><input type="text" id="${id}-a" ${attrs("assumption")} value="${h(s.assumption)}"></div>
             <div class="field"><label for="${id}-e">Evidence strength</label>${selectHTML(`${id}-e`, attrs("evidence"), REF.EVIDENCE, s.evidence)}</div>
-          </div></div>`;
+          </div>
+          <div class="field" style="margin:0"><label for="${id}-c">Does this step depend on customers?</label>${selectHTML(`${id}-c`, attrs("change"), REF.CUSTOMER_DEPENDENCE, s.change)}
+            ${dep && S.behaviour_actor.trim() ? `<span class="hint">From step 1, whose behaviour must change: ${h(S.behaviour_actor.trim())}</span>` : ""}</div></div>`;
       });
     });
 
     return hero(2, "Map your impact pathway",
       "Trace the causal chain from what you do to the environmental impact you claim, and state the assumption behind every link. This is what makes impact claims honest.") +
-      `<div class="cols"><div>
-        <div class="template-note"><b>Template applied (${h(cls.label)}):</b> ${h(template.name)}<p>${h(template.description)}</p></div>
+      `<div class="template-note"><b>Template applied (${h(cls.label)}):</b> ${h(template.name)}<p>${h(template.description)}</p></div>
+      ${expander("pw-diagram", "🗺️ Your pathway as a cause-and-effect diagram", live("diagram", diagramHTML), true)}
+      <div class="cols"><div>
         ${tracks}
         ${live("weak", () => {
           const weak = [];
@@ -441,6 +470,7 @@
           ["Tracks", String(Object.keys(S.pathway).length)],
           ["Stages described", `${flat.filter(s => s.description).length} / ${flat.length}`],
           ["Weak links flagged", String(flat.filter(s => s.evidence === "Weak (assumption only)").length)],
+          ["Steps that depend on customers", String(flat.filter(s => s.change && s.change !== "none").length)],
         ]), "🗺️") + card("Why this matters", "<p>Every stage carries an assumption. Naming the weak ones now is not a weakness. It tells you exactly where measurement is most needed.</p>", "❝", true);
       })}</aside></div>` +
       tip("A weak link is a finding, not a failure. Investors trust an honest chain more than a perfect story.");
@@ -830,7 +860,7 @@
       case "pw": {
         const stage = (S.pathway[el.dataset.track] || [])[+el.dataset.i];
         if (stage) stage[el.dataset.k] = val;
-        return false;
+        return el.dataset.k === "change";  // moves the card's badge
       }
       case "sel": {
         const name = el.dataset.name, cat = el.dataset.cat;
@@ -980,7 +1010,18 @@
     const label = btn.innerHTML;
     btn.disabled = true; btn.textContent = "Preparing…";
     try {
-      const blob = await REPORT.toDocx(assembled());
+      const r = assembled();
+      // the pathway diagrams go into Word as images; a failure here only
+      // drops the picture, never the report
+      const diagrams = {};
+      for (const [track, stages] of Object.entries(r.pathway)) {
+        if (!stages.length) continue;
+        try {
+          const d = PATHWAY_DIAGRAM.svg(track, stages, { actor: r.customer.actor });
+          diagrams[track] = { data: await PATHWAY_DIAGRAM.toPng(d.svg, d.width, d.height), width: d.width, height: d.height };
+        } catch (e) { console.warn("diagram skipped:", e); }
+      }
+      const blob = await REPORT.toDocx(r, { diagrams });
       download(`${nameSlug()}_impact_report.docx`, blob);
       toast("Word report downloaded.");
     } catch (err) {
