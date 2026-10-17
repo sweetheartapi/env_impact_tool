@@ -1,6 +1,30 @@
 **Live app (GitHub Pages):** https://sweetheartapi.github.io/env_impact_tool/
 
-# Startup Environmental Impact Assessment Tool (v3.2)
+# Startup Environmental Impact Assessment Tool (v3.3)
+
+## v3.3: Czech version (ENG / CZ switch)
+
+The whole web tool is available in English and Czech. An **ENG / CZ** switch
+sits at the top right of the homepage, in the sidebar and in the mobile top bar.
+
+- **What is translated:** the homepage, all five steps, the pathway diagram,
+  the indicator bank, the checks and recommendations (with their "based on"
+  traces), and the Word, PDF, HTML and Markdown reports.
+- **Default:** Czech for browsers set to Czech or Slovak, English otherwise.
+  The choice is remembered in the browser (`eia-lang`).
+- **Save files do not depend on the language.** Answers are always stored
+  under their English values and only *displayed* translated, so a file saved
+  in Czech opens correctly in English and the other way round. Your own text
+  (descriptions, claims, notes) is kept as you typed it.
+- **Claim checks understand both languages.** Hedged wording ("by mohla",
+  "odhadujeme", "až o"), comparisons ("sníží", "o 18 %") and disclosed
+  self-reports ("podle farmářů", "dotazník") are recognised in Czech as well.
+- **The demo** loads a Czech FieldSense example (`docs/samples/FieldSense.cs.json`)
+  in Czech mode. It has the same answers as the English one.
+- **Code:** `docs/js/i18n.js` provides `L(en, cs)` for UI strings and `tr()`
+  for stored values (stages, evidence levels, indicator names, units…);
+  `docs/js/page-cs.js` holds the Czech homepage text. Literature references
+  and the thesis title stay in English.
 
 ## v3.1: customer profile and next steps (feedback from SIC, Oct 2026)
 
@@ -199,6 +223,17 @@ python -m streamlit run app.py
 ## Project structure
 
 ```
+docs/                      — the web app (GitHub Pages)
+  index.html, css/         — homepage and styles
+  js/i18n.js               — language switch, L(en, cs), tr() vocabulary
+  js/framework.js          — framework content and rules (bilingual)
+  js/diagram.js            — pathway diagram
+  js/report.js             — Markdown / HTML / Word / JSON reports
+  js/page-cs.js            — Czech homepage text
+  js/app.js                — the 5-step wizard
+  samples/                 — FieldSense demo (EN and CS)
+tests/web/                 — Node tests for the web rules, also in Czech
+--- retired Streamlit version ---
 app.py                     — Streamlit UI (the 5-step wizard)
 ui.py                      — visual layer: design tokens, CSS, card
                              components, progress heuristic

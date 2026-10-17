@@ -1,0 +1,132 @@
+{
+  "format": "startup-env-impact-assessment",
+  "format_version": 2,
+  "exported": "2026-08-04",
+  "state": {
+    "startup_name": "FieldSense",
+    "startup_desc": "FieldSense prodává bezdrátové senzory půdní vlhkosti a mobilní aplikaci pro plánování zavlažování, která malým a středním farmám pomáhá snížit spotřebu vody bez ztráty výnosu.",
+    "sector": "AgTech / precizní zavlažování",
+    "stage": "Validation / MVP",
+    "customer_types": [
+      "B2B"
+    ],
+    "revenue_models": [
+      "hardware_sub"
+    ],
+    "customer_profile": "Majitelé malých a středních zelinářských a ovocnářských farem (20–500 ha) v suchých oblastech, které zavlažují z měřených studní nebo placených zdrojů vody.",
+    "customer_user": "Vedoucí farem a pracovníci zavlažování, kteří kontrolují aplikaci a obsluhují zavlažovací systém.",
+    "behaviour_actor": "Ten, kdo na farmě rozhoduje, kdy a kolik zavlažovat (obvykle vedoucí farmy, ne majitel).",
+    "value_drivers": [
+      "cost",
+      "performance"
+    ],
+    "customer_value": "Nižší náklady na vodu a čerpání při stabilních výnosech: každý m³ vody, který farma nepoužije, jsou zároveň ušetřené peníze.",
+    "mechanism": "Enabling",
+    "orientation": "Primary",
+    "is_hybrid": false,
+    "secondary_mechanism": null,
+    "pathway": {
+      "Adoption chain": [
+        {
+          "stage": "Activities: product features / service delivered",
+          "description": "Bezdrátové senzory půdní vlhkosti posílají data do mobilní aplikace, která každý den vytváří doporučení k zavlažování podle plodiny a typu půdy.",
+          "assumption": "Doporučení jsou dost přesná a důvěryhodná na to, aby se jimi farmáři řídili místo zaběhnutého rozvrhu zalévání.",
+          "evidence": "Weak (assumption only)"
+        },
+        {
+          "stage": "Outputs: customer adoption",
+          "description": "V pilotní oblasti je zapojeno 62 farem (před šesti měsíci 40), v průměru 3,2 senzoru na farmu.",
+          "assumption": "Zapojené farmy přiměřeně odpovídají běžným menším podnikům v regionu, nejde jen o výjimečné první uživatele.",
+          "evidence": "Moderate (some evidence)"
+        },
+        {
+          "stage": "Outcomes: customer behavior change",
+          "description": "Farmáři v pilotu uvádějí, že si před zavlažováním kontrolují aplikaci, a podle neformálních zpráv zalévají méně často.",
+          "assumption": "Používání aplikace se skutečně promítá do menšího množství použité vody, ne jen do pocitu, že je zalévání potřeba méně.",
+          "evidence": "Weak (assumption only)"
+        },
+        {
+          "stage": "Impact: avoided environmental harm",
+          "description": "Nižší odběr podzemní a povrchové vody na zavlažovaný hektar.",
+          "assumption": "Úspory vody nejsou vyrovnány tím, že farmáři ušetřenou vodou rozšíří zavlažovanou plochu (rebound efekt).",
+          "evidence": "Not rated"
+        }
+      ]
+    },
+    "weakest_links": "Nejslabším článkem řetězce je předpoklad změny chování. Máme spolehlivá čísla o zapojení, ale zatím žádná data z vodoměrů, která by potvrdila, že farmáři skutečně odebírají méně vody, a ne jen mají lepší přehled; a zatím nesledujeme, zda se ušetřená voda nepoužije k rozšíření zavlažované plochy.",
+    "selected_indicators": {
+      "Adoption rate of the solution": {
+        "category": "Systemic & Enabling Contribution",
+        "feasibility": "High",
+        "relevance": "High",
+        "unit": "zapojené farmy / pokryté hektary",
+        "current_value": "62 farem, ~410 hektarů",
+        "target": "150 farem do konce sezóny",
+        "frequency": "Monthly",
+        "data_source": "Záznamy o registracích v CRM",
+        "pathway_link": "Adoption chain → Outputs: customer adoption",
+        "citation": "roomi2021"
+      },
+      "Quality / reliability of adoption evidence": {
+        "category": "Systemic & Enabling Contribution",
+        "feasibility": "Medium",
+        "relevance": "High",
+        "unit": "kvalitativní hodnocení + popis důkazů",
+        "current_value": "Dotazník se sebehodnocením (n = 22 z 62): 71 % uvádí, že zavlažuje méně často; zatím bez ověření měřením",
+        "target": "Přejít na ověření měřením u části farem",
+        "frequency": "Quarterly",
+        "data_source": "Dotazník mezi farmáři (sebehodnocení)",
+        "pathway_link": "Adoption chain → Outcomes: customer behavior change",
+        "citation": "mayne2008"
+      },
+      "Avoided physical harm per unit of adoption (domain-specific)": {
+        "category": "Product-Level Performance & Avoided Impact",
+        "feasibility": "Low",
+        "relevance": "High",
+        "unit": "% snížení odběru vody / hektar",
+        "current_value": "",
+        "target": "Instalovat průtokoměry na čerpadla pilotních farem",
+        "frequency": "Annually",
+        "data_source": "Zatím neměřeno — nyní odhad podle publikovaných agronomických studií",
+        "pathway_link": "Adoption chain → Impact: avoided environmental harm",
+        "citation": "mayne2008"
+      }
+    },
+    "custom_indicators": {},
+    "uncertainty": {
+      "Adoption rate of the solution": {
+        "level": "Measured",
+        "claim": "K tomuto měsíci je zapojeno 62 farem s rozlohou přibližně 410 hektarů.",
+        "quality": "high",
+        "baseline": "",
+        "sources": "Záznamy o registracích a zprovoznění v CRM",
+        "boundary": "Farmy s aktivním účtem a alespoň jedním instalovaným senzorem k datu exportu; bez farem, které se teprve zapojují.",
+        "assumptions": "Počítá farmy, které jsou zapojené a mají instalované senzory; samotné zapojení neukazuje, že farma doporučení skutečně používá.",
+        "conditions": ""
+      },
+      "Quality / reliability of adoption evidence": {
+        "level": "Measured",
+        "claim": "V dotazníku se sebehodnocením 71 % odpovídajících farmářů z pilotu (22 z 62 farem) uvádí, že od začátku používání FieldSense zavlažují méně často.",
+        "quality": "low",
+        "baseline": "Vlastní vzpomínka farmářů na to, jak často zavlažovali před používáním FieldSense",
+        "sources": "Dotazník se sebehodnocením u 22 z 62 zapojených farem",
+        "boundary": "22 z 62 pilotních farem, které odpověděly v dotazníku v polovině sezóny 2026; respondenti se vybrali sami.",
+        "assumptions": "Měří to, co farmáři uvádějí, ne kolik vody spotřebují: méně časté zavlažování může znamenat stejné nebo větší množství vody na jedno zavlažení. Pozitivní odpovědi pravděpodobně nadsazuje snaha odpovídat společensky žádoucím způsobem.",
+        "conditions": "Výsledek by vypadal jinak u většího, náhodně vybraného vzorku nebo při měření spotřeby vody místo sebehodnocení."
+      },
+      "Avoided physical harm per unit of adoption (domain-specific)": {
+        "level": "Projected",
+        "claim": "Scénář: pokud se pilotní farmy budou řídit doporučeními po celou sezónu 2027, mohl by odběr vody na zavlažovaný hektar klesnout až o 18 % oproti regionálnímu průměru za rok 2025. Na farmách FieldSense zatím neměřeno.",
+        "quality": "medium",
+        "baseline": "Regionální průměr odběru vody na zavlažovaný hektar za rok 2025 (zveřejněná statistika)",
+        "sources": "Publikované agronomické studie srovnatelných senzorových zavlažovacích systémů v jiných regionech",
+        "boundary": "Scénář pro zavlažovací sezónu 2027: voda použitá na hektar na zapojených farmách; bez energie na čerpání a bez případného rozšíření zavlažované plochy.",
+        "assumptions": "Zatím nevychází z vlastních měřených dat FieldSense; předpokládá, že se pilotní farmy chovají jako farmy v publikovaných studiích.",
+        "conditions": "Skutečné úspory by mohly být výrazně nižší, pokud farmáři v rizikových fázích růstu (např. při kvetení) doporučením nedůvěřují a z opatrnosti zalévají víc."
+      }
+    },
+    "assessment_version": 1,
+    "next_review_milestone": "Product launch",
+    "review_notes": "Před další revizí nainstalovat průtokoměry alespoň na 10 pilotních farmách, aby se klíčové tvrzení o odvrácené škodě změnilo z projektovaného na měřené."
+  }
+}

@@ -481,3 +481,19 @@ details.examples summary { cursor: pointer; font-weight: 700; color: var(--green
 @media (max-width: 640px) { .ex-grid { grid-template-columns: minmax(0, 1fr); } }
 .ex-grid ul { margin: .3rem 0 0; padding-left: 1.1rem; }
 details.examples p { margin: .6rem 0 0; color: #3E4A43; }
+
+/* language switch (ENG / CZ): homepage corner, sidebar, mobile top bar */
+.lang-switch {
+  display: inline-flex; align-items: stretch; background: #fff; border: 1px solid var(--border-strong, #C9D4CC);
+  border-radius: 999px; padding: 2px; gap: 2px; box-shadow: 0 1px 2px rgba(28, 42, 34, .06);
+}
+.lang-switch button {
+  border: 0; background: transparent; cursor: pointer; border-radius: 999px;
+  font: 700 .74rem/1 Inter, system-ui, sans-serif; letter-spacing: .05em; color: var(--muted);
+  padding: .42rem .7rem; min-width: 2.7rem;
+}
+.lang-switch button:hover { color: var(--green); }
+.lang-switch button[aria-pressed="true"] { background: var(--green); color: #fff; }
+.lang-switch button:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.side-lang { margin: -.7rem .3rem 1.1rem; }
+@media (max-width: 440px) { .topbar .step-pill { display: none; } }

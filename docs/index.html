@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
 <link rel="stylesheet" href="css/welcome.css">
+<script src="js/i18n.js"></script>
 </head>
 <body>
 
@@ -56,121 +57,122 @@
     <span class="bird b4"><svg viewBox="0 0 44 22"><path d="M1 11 C 8 7, 15 9, 22 12 C 29 9, 36 7, 43 11 C 36 13, 29 12, 22 15.5 C 15 12, 8 13, 1 11 Z" fill="currentColor"/></svg></span>
   </div>
 
+  <div class="w-lang" data-lang-slot="w-lang-switch"></div>
   <main class="welcome" id="welcome">
     <div class="w-hero reveal">
       <div class="lockup">
         <span class="lmark" data-mark="bare"></span>
         <span class="lword">EIA</span>
         <span class="lbar"></span>
-        <span class="lsub">Startup Environmental<br>Impact Assessment</span>
+        <span class="lsub" data-i18n="hero.lsub">Startup Environmental<br>Impact Assessment</span>
       </div>
-      <h1>Understand your impact. Strengthen your claims. Know what comes next.</h1>
-      <p class="tagline">A guided environmental assessment for early-stage startups. Map how your solution creates environmental value, identify what you can substantiate, and build a practical plan for improving your evidence.</p>
-      <div class="meta"><span>About 45–60 minutes</span><span>No consultant needed</span><span>Ends with an action plan and a report</span></div>
+      <h1 data-i18n="hero.h1">Understand your impact. Strengthen your claims. Know what comes next.</h1>
+      <p class="tagline" data-i18n="hero.tagline">A guided environmental assessment for early-stage startups. Map how your solution creates environmental value, identify what you can substantiate, and build a practical plan for improving your evidence.</p>
+      <div class="meta" data-i18n="hero.meta"><span>About 45–60 minutes</span><span>No consultant needed</span><span>Ends with an action plan and a report</span></div>
       <div class="w-cta">
         <button class="btn primary" data-action="start">Start the assessment</button>
-        <button class="btn" data-action="resume-file">I have a save file to resume</button>
-        <button class="btn" data-action="demo">Explore a finished example</button>
+        <button class="btn" data-action="resume-file" data-i18n="btn.resume">I have a save file to resume</button>
+        <button class="btn" data-action="demo" data-i18n="btn.demo">Explore a finished example</button>
       </div>
-      <p class="caption" style="margin-top:.7rem">The example is FieldSense, a fictional agri-tech startup with a complete assessment, so you can look around every step and the report without typing anything.</p>
+      <p class="caption" style="margin-top:.7rem" data-i18n="hero.example">The example is FieldSense, a fictional agri-tech startup with a complete assessment, so you can look around every step and the report without typing anything.</p>
       <p class="caption" id="welcome-continue" hidden style="margin-top:.8rem"></p>
     </div>
 
     <section class="reveal">
-      <h2>Why this exists</h2>
-      <p class="lead">If your startup makes any kind of environmental claim, you have probably asked yourself how much of it you could actually back up. Sooner or later someone else asks too: an accelerator, a mentor, a corporate customer, a grant reviewer, sometimes an investor. <em>"Can you show us your impact?"</em> And your options look like this:</p>
+      <h2 data-i18n="why.h2">Why this exists</h2>
+      <p class="lead" data-i18n="why.lead">If your startup makes any kind of environmental claim, you have probably asked yourself how much of it you could actually back up. Sooner or later someone else asks too: an accelerator, a mentor, a corporate customer, a grant reviewer, sometimes an investor. <em>"Can you show us your impact?"</em> And your options look like this:</p>
       <div class="options">
-        <div class="option" style="border-left-color:#C9A227"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1z"/><path d="M8 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2"/><path d="M9 11h6M9 15h4"/></svg></span><span><b>Commission a full LCA or GHG Protocol audit.</b>Rigorous and credible, but typically far too slow and expensive at your stage, especially when the product still changes every few months.</span></div>
-        <div class="option" style="border-left-color:#4E8C60"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 6.2a3 3 0 0 1 0 5.6M18.6 4a6 6 0 0 1 0 10"/></svg></span><span><b>Put together some numbers yourself.</b>Fast, but you end up reporting whatever data you happen to have rather than what actually matters. That is how well-meaning founders accidentally end up greenwashing.</span></div>
-        <div class="option" style="border-left-color:#B25B4E"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/><path d="M9 10.5h6"/></svg></span><span><b>Say nothing specific.</b>Safe, but it makes a genuinely good venture look like it has nothing to show.</span></div>
+        <div class="option" style="border-left-color:#C9A227"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1z"/><path d="M8 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2"/><path d="M9 11h6M9 15h4"/></svg></span><span data-i18n="why.o1"><b>Commission a full LCA or GHG Protocol audit.</b>Rigorous and credible, but typically far too slow and expensive at your stage, especially when the product still changes every few months.</span></div>
+        <div class="option" style="border-left-color:#4E8C60"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 6.2a3 3 0 0 1 0 5.6M18.6 4a6 6 0 0 1 0 10"/></svg></span><span data-i18n="why.o2"><b>Put together some numbers yourself.</b>Fast, but you end up reporting whatever data you happen to have rather than what actually matters. That is how well-meaning founders accidentally end up greenwashing.</span></div>
+        <div class="option" style="border-left-color:#B25B4E"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15a2 2 0 0 1-2 2H8l-4 3V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z"/><path d="M9 10.5h6"/></svg></span><span data-i18n="why.o3"><b>Say nothing specific.</b>Safe, but it makes a genuinely good venture look like it has nothing to show.</span></div>
       </div>
-      <p>This tool is built for that gap. It is a <strong>screening-level assessment</strong>: it will not replace a full LCA, and it does not pretend to. What it gives you is a structured account of what you claim, why you believe it, and how confident you actually are.</p>
-      <p>The framework behind it comes from academic research on environmental impact assessment in early-stage ventures. The tool makes it something you can sit down and fill out.</p>
+      <p data-i18n="why.p1">This tool is built for that gap. It is a <strong>screening-level assessment</strong>: it will not replace a full LCA, and it does not pretend to. What it gives you is a structured account of what you claim, why you believe it, and how confident you actually are.</p>
+      <p data-i18n="why.p2">The framework behind it comes from academic research on environmental impact assessment in early-stage ventures. The tool makes it something you can sit down and fill out.</p>
     </section>
 
     <section class="reveal">
-      <h2>Who it is for</h2>
-      <p>First of all, it is a working exercise for founders: putting the impact logic on paper is how you find the gaps in it. The same structure is useful to the people who support and assess startups.</p>
+      <h2 data-i18n="who.h2">Who it is for</h2>
+      <p data-i18n="who.p">First of all, it is a working exercise for founders: putting the impact logic on paper is how you find the gaps in it. The same structure is useful to the people who support and assess startups.</p>
       <div class="audiences">
-        <div class="aud primary"><b>Startup founders</b><span>Understand your impact, the assumptions behind it, and where the evidence is still missing.</span></div>
-        <div class="aud"><b>Accelerators and incubators</b><span>A structured assessment to run with your cohort, and a shared basis for mentoring founders.</span></div>
-        <div class="aud"><b>Impact-oriented investors</b><span>Review environmental claims together with the evidence and assumptions behind them.</span></div>
-        <div class="aud"><b>Conventional investors</b><span>Additional transparency where environmental impact is relevant to the case.</span></div>
+        <div class="aud primary" data-i18n="who.a1"><b>Startup founders</b><span>Understand your impact, the assumptions behind it, and where the evidence is still missing.</span></div>
+        <div class="aud" data-i18n="who.a2"><b>Accelerators and incubators</b><span>A structured assessment to run with your cohort, and a shared basis for mentoring founders.</span></div>
+        <div class="aud" data-i18n="who.a3"><b>Impact-oriented investors</b><span>Review environmental claims together with the evidence and assumptions behind them.</span></div>
+        <div class="aud" data-i18n="who.a4"><b>Conventional investors</b><span>Additional transparency where environmental impact is relevant to the case.</span></div>
       </div>
     </section>
 
     <section class="reveal">
-      <h2>What you get at the end</h2>
-      <p>A <strong>prioritised action plan</strong> that tells you what to check or measure next, and why it matters at your stage. And a <strong>Word report</strong> you can use as a working document with your team, share with your accelerator or mentors, and, where environmental impact matters to them, with customers or investors. It contains your impact classification, your impact pathway, a short and focused set of indicators, every claim labelled with how confident you are, an automated integrity check that flags the weak spots before someone else does, where your impact depends on commercial assumptions, and traceable recommendations with questions worth considering.</p>
-      <p>Plus a <strong>save file</strong>, so you can return and update the assessment as your company grows rather than starting from scratch. Your progress is also kept automatically in this browser as you work.</p>
+      <h2 data-i18n="get.h2">What you get at the end</h2>
+      <p data-i18n="get.p1">A <strong>prioritised action plan</strong> that tells you what to check or measure next, and why it matters at your stage. And a <strong>Word report</strong> you can use as a working document with your team, share with your accelerator or mentors, and, where environmental impact matters to them, with customers or investors. It contains your impact classification, your impact pathway, a short and focused set of indicators, every claim labelled with how confident you are, an automated integrity check that flags the weak spots before someone else does, where your impact depends on commercial assumptions, and traceable recommendations with questions worth considering.</p>
+      <p data-i18n="get.p2">Plus a <strong>save file</strong>, so you can return and update the assessment as your company grows rather than starting from scratch. Your progress is also kept automatically in this browser as you work.</p>
     </section>
 
     <section class="reveal">
-      <h2>Before you start</h2>
-      <p>You do not need an environmental consultant, and you do not need perfect data. Bring about an hour, whatever operational data you already have, and honesty about what you do not know. That last one matters most: a report that admits uncertainty is far more credible than one that does not.</p>
+      <h2 data-i18n="before.h2">Before you start</h2>
+      <p data-i18n="before.p">You do not need an environmental consultant, and you do not need perfect data. Bring about an hour, whatever operational data you already have, and honesty about what you do not know. That last one matters most: a report that admits uncertainty is far more credible than one that does not.</p>
     </section>
 
     <section>
-      <h2 class="reveal">The five steps</h2>
+      <h2 class="reveal" data-i18n="steps.h2">The five steps</h2>
       <div class="w-cards">
-        <div class="w-card reveal"><div class="head"><span class="num">1</span><h3>Profile &amp; classify your startup</h3></div><p>Enter your startup's details and who your customer is (businesses, consumers, the public sector or a mix, and why they would buy your product), then answer two plain-language questions about how your environmental benefit actually arises.</p><p class="why">These two answers determine how your startup should be assessed at all. A company that captures carbon directly should be measured very differently from software that helps customers waste less fuel. Most tools apply the same checklist to everyone; this one branches.</p></div>
-        <div class="w-card reveal"><div class="head"><span class="num">2</span><h3>Map your impact pathway</h3></div><p>The tool loads the right template for your type and walks you through each stage: what happens, the assumption linking it to the next stage, and how strong your evidence is.</p><p class="why">This is the heart of it. Impact claims fall apart at the joints, not in the middle. An agtech company can have flawless sensor data and still be wrong, because the real question is whether farmers change what they do. Any link you rate as weak gets flagged automatically.</p></div>
-        <div class="w-card reveal"><div class="head"><span class="num">3</span><h3>Select your indicators</h3></div><p>Browse a bank of indicators across six categories, then score each on relevance and feasibility.</p><p class="why">The instinct is to measure everything you can measure, and that instinct is backwards. An office recycling rate is easy to report and tells nobody anything about whether your product helps the planet. Low relevance gets excluded no matter how easy it is to measure. That rule is deliberate.</p></div>
-        <div class="w-card reveal"><div class="head"><span class="num">4</span><h3>Check your claims against the evidence</h3></div><p>Write each claim as you would say it out loud, label where its number comes from (measured, modelled or projected) and how far the evidence can be trusted, and tie it to its baseline, sources and assumptions.</p><p class="why">All three confidence levels are legitimate for an early-stage company. What destroys credibility is mixing them up. Labelling them separately makes your strong claims stronger: when a reader sees you were scrupulous about the soft numbers, they trust the hard ones.</p></div>
-        <div class="w-card reveal"><div class="head"><span class="num">5</span><h3>Review, report &amp; export</h3></div><p>See where your environmental impact depends on commercial assumptions, work through recommendations prioritised for your development stage, read the automated integrity checks, set the milestone when you will revisit this, and download your report.</p><p class="why">The integrity checks are the tool reviewing your work before anyone else does: vanity metrics, a core set grown too big, claims that are all projections, estimates with no documented assumptions.</p></div>
+        <div class="w-card reveal"><div class="head"><span class="num">1</span><h3 data-i18n="steps.1.h">Profile &amp; classify your startup</h3></div><p data-i18n="steps.1.p">Enter your startup's details and who your customer is (businesses, consumers, the public sector or a mix, and why they would buy your product), then answer two plain-language questions about how your environmental benefit actually arises.</p><p class="why" data-i18n="steps.1.why">These two answers determine how your startup should be assessed at all. A company that captures carbon directly should be measured very differently from software that helps customers waste less fuel. Most tools apply the same checklist to everyone; this one branches.</p></div>
+        <div class="w-card reveal"><div class="head"><span class="num">2</span><h3 data-i18n="steps.2.h">Map your impact pathway</h3></div><p data-i18n="steps.2.p">The tool loads the right template for your type and walks you through each stage: what happens, the assumption linking it to the next stage, and how strong your evidence is.</p><p class="why" data-i18n="steps.2.why">This is the heart of it. Impact claims fall apart at the joints, not in the middle. An agtech company can have flawless sensor data and still be wrong, because the real question is whether farmers change what they do. Any link you rate as weak gets flagged automatically.</p></div>
+        <div class="w-card reveal"><div class="head"><span class="num">3</span><h3 data-i18n="steps.3.h">Select your indicators</h3></div><p data-i18n="steps.3.p">Browse a bank of indicators across six categories, then score each on relevance and feasibility.</p><p class="why" data-i18n="steps.3.why">The instinct is to measure everything you can measure, and that instinct is backwards. An office recycling rate is easy to report and tells nobody anything about whether your product helps the planet. Low relevance gets excluded no matter how easy it is to measure. That rule is deliberate.</p></div>
+        <div class="w-card reveal"><div class="head"><span class="num">4</span><h3 data-i18n="steps.4.h">Check your claims against the evidence</h3></div><p data-i18n="steps.4.p">Write each claim as you would say it out loud, label where its number comes from (measured, modelled or projected) and how far the evidence can be trusted, and tie it to its baseline, sources and assumptions.</p><p class="why" data-i18n="steps.4.why">All three confidence levels are legitimate for an early-stage company. What destroys credibility is mixing them up. Labelling them separately makes your strong claims stronger: when a reader sees you were scrupulous about the soft numbers, they trust the hard ones.</p></div>
+        <div class="w-card reveal"><div class="head"><span class="num">5</span><h3 data-i18n="steps.5.h">Review, report &amp; export</h3></div><p data-i18n="steps.5.p">See where your environmental impact depends on commercial assumptions, work through recommendations prioritised for your development stage, read the automated integrity checks, set the milestone when you will revisit this, and download your report.</p><p class="why" data-i18n="steps.5.why">The integrity checks are the tool reviewing your work before anyone else does: vanity metrics, a core set grown too big, claims that are all projections, estimates with no documented assumptions.</p></div>
       </div>
     </section>
 
     <section class="reveal">
-      <h2>How confidence is labelled</h2>
-      <p>Every claim you make gets one of three labels. All three are perfectly legitimate for an early-stage company:</p>
+      <h2 data-i18n="conf.h2">How confidence is labelled</h2>
+      <p data-i18n="conf.p1">Every claim you make gets one of three labels. All three are perfectly legitimate for an early-stage company:</p>
       <div class="levels">
-        <div class="level"><span class="dot" style="background:#2E7D52"></span><span><b>Measured</b>: you have your own operational data behind this</span></div>
-        <div class="level"><span class="dot" style="background:#B8860B"></span><span><b>Modelled</b>: it comes from industry averages, supplier data, or a simplified calculation</span></div>
-        <div class="level"><span class="dot" style="background:#7C5296"></span><span><b>Projected</b>: it rests on assumptions about future adoption or scale</span></div>
+        <div class="level"><span class="dot" style="background:#2E7D52"></span><span data-i18n="conf.l1"><b>Measured</b>: you have your own operational data behind this</span></div>
+        <div class="level"><span class="dot" style="background:#B8860B"></span><span data-i18n="conf.l2"><b>Modelled</b>: it comes from industry averages, supplier data, or a simplified calculation</span></div>
+        <div class="level"><span class="dot" style="background:#7C5296"></span><span data-i18n="conf.l3"><b>Projected</b>: it rests on assumptions about future adoption or scale</span></div>
       </div>
-      <p>Nobody expects a seed-stage startup to have audited figures for everything. What destroys credibility is presenting a projection as if it were a measurement.</p>
+      <p data-i18n="conf.p2">Nobody expects a seed-stage startup to have audited figures for everything. What destroys credibility is presenting a projection as if it were a measurement.</p>
     </section>
 
     <section>
-      <h2 class="reveal">What makes this different</h2>
+      <h2 class="reveal" data-i18n="diff.h2">What makes this different</h2>
       <div class="features">
-        <div class="feature reveal"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7.2 11.1C10.2 8.5 13.2 6.8 16.6 6.2"/><path d="M7.2 12.9C10.2 15.5 13.2 17.2 16.6 17.8"/><circle cx="4.6" cy="12" r="2.2" fill="currentColor" stroke="none"/><circle cx="19" cy="6" r="2.2" fill="#A9CDB4"/><circle cx="19" cy="18" r="2.2" fill="#A9CDB4"/></svg></span><b>It adapts to your company</b>Four startup types, three pathway structures, guidance that shifts with your development stage. Not a generic form.</div>
-        <div class="feature reveal"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.4V19M8 19.6h8M3.4 8.2h17.2"/><circle cx="12" cy="4.2" r="1.3" fill="currentColor" stroke="none"/><path d="M1 12.4 3.4 8.2l2.4 4.2a2.4 2.4 0 0 1-4.8 0z" fill="#A9CDB4"/><path d="M18.2 12.4l2.4-4.2 2.4 4.2a2.4 2.4 0 0 1-4.8 0z" fill="#A9CDB4"/></svg></span><b>It is proportionate</b>Three to five well-chosen indicators, not a corporate checklist. At ideation, getting the logic right matters more than having numbers.</div>
-        <div class="feature reveal"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.4 4.4 5.2v6.2c0 4.7 3.2 8.9 7.6 10.2 4.4-1.3 7.6-5.5 7.6-10.2V5.2z"/><path d="M16.8 7.4c-4.8.3-7.7 2.8-7.7 6.5 0 .9.2 1.7.6 2.4 4.5-.5 7.4-3.8 7.5-7.8 0-.4 0-.8-.4-1.1z" fill="#A9CDB4" stroke="none"/></svg></span><b>It protects you from greenwashing</b>Not a warning in the footer, but scoring rules that exclude vanity metrics and checks that catch known failure patterns.</div>
-        <div class="feature reveal"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.4" cy="10.4" r="6.7"/><path d="M15.3 15.3 21 21"/><rect x="7.2" y="10.6" width="1.9" height="3.4" rx=".5" fill="#A9CDB4" stroke="none"/><rect x="9.6" y="8.4" width="1.9" height="5.6" rx=".5" fill="#A9CDB4" stroke="none"/><rect x="12" y="6.4" width="1.9" height="7.6" rx=".5" fill="currentColor" stroke="none" opacity=".85"/></svg></span><b>It treats uncertainty as a feature</b>Being precise about how confident you are is more honest, and in front of a mentor, a customer or an investor, more persuasive.</div>
+        <div class="feature reveal"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7.2 11.1C10.2 8.5 13.2 6.8 16.6 6.2"/><path d="M7.2 12.9C10.2 15.5 13.2 17.2 16.6 17.8"/><circle cx="4.6" cy="12" r="2.2" fill="currentColor" stroke="none"/><circle cx="19" cy="6" r="2.2" fill="#A9CDB4"/><circle cx="19" cy="18" r="2.2" fill="#A9CDB4"/></svg></span><span data-i18n="diff.1"><b>It adapts to your company</b>Four startup types, three pathway structures, guidance that shifts with your development stage. Not a generic form.</span></div>
+        <div class="feature reveal"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5.4V19M8 19.6h8M3.4 8.2h17.2"/><circle cx="12" cy="4.2" r="1.3" fill="currentColor" stroke="none"/><path d="M1 12.4 3.4 8.2l2.4 4.2a2.4 2.4 0 0 1-4.8 0z" fill="#A9CDB4"/><path d="M18.2 12.4l2.4-4.2 2.4 4.2a2.4 2.4 0 0 1-4.8 0z" fill="#A9CDB4"/></svg></span><span data-i18n="diff.2"><b>It is proportionate</b>Three to five well-chosen indicators, not a corporate checklist. At ideation, getting the logic right matters more than having numbers.</span></div>
+        <div class="feature reveal"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.4 4.4 5.2v6.2c0 4.7 3.2 8.9 7.6 10.2 4.4-1.3 7.6-5.5 7.6-10.2V5.2z"/><path d="M16.8 7.4c-4.8.3-7.7 2.8-7.7 6.5 0 .9.2 1.7.6 2.4 4.5-.5 7.4-3.8 7.5-7.8 0-.4 0-.8-.4-1.1z" fill="#A9CDB4" stroke="none"/></svg></span><span data-i18n="diff.3"><b>It protects you from greenwashing</b>Not a warning in the footer, but scoring rules that exclude vanity metrics and checks that catch known failure patterns.</span></div>
+        <div class="feature reveal"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.4" cy="10.4" r="6.7"/><path d="M15.3 15.3 21 21"/><rect x="7.2" y="10.6" width="1.9" height="3.4" rx=".5" fill="#A9CDB4" stroke="none"/><rect x="9.6" y="8.4" width="1.9" height="5.6" rx=".5" fill="#A9CDB4" stroke="none"/><rect x="12" y="6.4" width="1.9" height="7.6" rx=".5" fill="currentColor" stroke="none" opacity=".85"/></svg></span><span data-i18n="diff.4"><b>It treats uncertainty as a feature</b>Being precise about how confident you are is more honest, and in front of a mentor, a customer or an investor, more persuasive.</span></div>
       </div>
     </section>
 
     <section class="reveal">
-      <h2>What this is not</h2>
+      <h2 data-i18n="not.h2">What this is not</h2>
       <div class="limits">
-        <div class="limit"><b>Not a full LCA.</b> It does not replace ISO 14040/14044 assessment.</div>
-        <div class="limit"><b>Not comprehensive GHG accounting.</b> The built-in estimator is a screening tool using generic emission factors. Swap in national, year-specific factors before reporting externally.</div>
-        <div class="limit"><b>Not a certification.</b> Nobody audits your inputs. Its credibility comes from transparency about method and confidence.</div>
-        <div class="limit"><b>Not a score.</b> There is no single number at the end, deliberately.</div>
+        <div class="limit" data-i18n="not.1"><b>Not a full LCA.</b> It does not replace ISO 14040/14044 assessment.</div>
+        <div class="limit" data-i18n="not.2"><b>Not comprehensive GHG accounting.</b> The built-in estimator is a screening tool using generic emission factors. Swap in national, year-specific factors before reporting externally.</div>
+        <div class="limit" data-i18n="not.3"><b>Not a certification.</b> Nobody audits your inputs. Its credibility comes from transparency about method and confidence.</div>
+        <div class="limit" data-i18n="not.4"><b>Not a score.</b> There is no single number at the end, deliberately.</div>
       </div>
     </section>
 
     <section class="faq">
-      <h2 class="reveal">Questions</h2>
-      <details class="reveal"><summary>How long does this take?</summary><p>About 45 to 60 minutes for a first pass. You can stop at any point: your progress is kept in this browser, and you can download a save file to continue on another device.</p></details>
-      <details class="reveal"><summary>Where is my data stored?</summary><p>Only in your own browser. Nothing you type is sent to a server; the report files are generated on your device. Clearing your browser data removes the saved progress, so download the JSON save file if you want a permanent copy.</p></details>
-      <details class="reveal"><summary>Do I need perfect data to start?</summary><p>No. Bring whatever you already have: utility bills, a bill of materials, cloud dashboards, customer numbers. Honesty about what you do not know matters more than the data, and the tool is built to make gaps visible rather than paper over them.</p></details>
-      <details class="reveal"><summary>Do I need an environmental consultant?</summary><p>No. The questions are in plain language and the tool explains each concept as you go. There is a key-terms panel on the first step, and nothing here assumes a sustainability background.</p></details>
-      <details class="reveal"><summary>Is this a replacement for a full LCA?</summary><p>No, and it does not pretend to be. This is a screening-level assessment that gives you a structured, defensible account of your impact. It does not replace ISO 14040/14044 assessment or comprehensive GHG accounting.</p></details>
-      <details class="reveal"><summary>Can I come back and update it later?</summary><p>Yes, and that is the intended use. Download the JSON save file at the end, then load it when your next review milestone arrives. The tool picks up where you left off and bumps you to the next review cycle automatically.</p></details>
-      <details class="reveal"><summary>Is there a single score at the end?</summary><p>Deliberately not. Reducing environmental impact to one figure is precisely what makes impact claims misleading. You get a classification, a pathway, a focused indicator set, and an honest confidence label on every claim.</p></details>
-      <details class="reveal"><summary>Can I get it wrong on the first pass?</summary><p>There is genuinely no way to. Every answer can be changed later, and nothing is locked in. The only real mistake is being less honest than you could have been, and the tool is built to make that harder.</p></details>
+      <h2 class="reveal" data-i18n="faq.h2">Questions</h2>
+      <details class="reveal"><summary data-i18n="faq.1.q">How long does this take?</summary><p data-i18n="faq.1.a">About 45 to 60 minutes for a first pass. You can stop at any point: your progress is kept in this browser, and you can download a save file to continue on another device.</p></details>
+      <details class="reveal"><summary data-i18n="faq.2.q">Where is my data stored?</summary><p data-i18n="faq.2.a">Only in your own browser. Nothing you type is sent to a server; the report files are generated on your device. Clearing your browser data removes the saved progress, so download the JSON save file if you want a permanent copy.</p></details>
+      <details class="reveal"><summary data-i18n="faq.3.q">Do I need perfect data to start?</summary><p data-i18n="faq.3.a">No. Bring whatever you already have: utility bills, a bill of materials, cloud dashboards, customer numbers. Honesty about what you do not know matters more than the data, and the tool is built to make gaps visible rather than paper over them.</p></details>
+      <details class="reveal"><summary data-i18n="faq.4.q">Do I need an environmental consultant?</summary><p data-i18n="faq.4.a">No. The questions are in plain language and the tool explains each concept as you go. There is a key-terms panel on the first step, and nothing here assumes a sustainability background.</p></details>
+      <details class="reveal"><summary data-i18n="faq.5.q">Is this a replacement for a full LCA?</summary><p data-i18n="faq.5.a">No, and it does not pretend to be. This is a screening-level assessment that gives you a structured, defensible account of your impact. It does not replace ISO 14040/14044 assessment or comprehensive GHG accounting.</p></details>
+      <details class="reveal"><summary data-i18n="faq.6.q">Can I come back and update it later?</summary><p data-i18n="faq.6.a">Yes, and that is the intended use. Download the JSON save file at the end, then load it when your next review milestone arrives. The tool picks up where you left off and bumps you to the next review cycle automatically.</p></details>
+      <details class="reveal"><summary data-i18n="faq.7.q">Is there a single score at the end?</summary><p data-i18n="faq.7.a">Deliberately not. Reducing environmental impact to one figure is precisely what makes impact claims misleading. You get a classification, a pathway, a focused indicator set, and an honest confidence label on every claim.</p></details>
+      <details class="reveal"><summary data-i18n="faq.8.q">Can I get it wrong on the first pass?</summary><p data-i18n="faq.8.a">There is genuinely no way to. Every answer can be changed later, and nothing is locked in. The only real mistake is being less honest than you could have been, and the tool is built to make that harder.</p></details>
     </section>
 
     <div class="closing reveal">
-      <h2>Ready?</h2>
-      <p>Put in your startup's name and answer the first question. You can change everything afterwards, and there is no way to get it wrong on the first pass.</p>
+      <h2 data-i18n="close.h2">Ready?</h2>
+      <p data-i18n="close.p">Put in your startup's name and answer the first question. You can change everything afterwards, and there is no way to get it wrong on the first pass.</p>
       <div class="w-cta">
         <button class="btn primary" data-action="start">Start the assessment</button>
-        <button class="btn" data-action="resume-file">I have a save file to resume</button>
-        <button class="btn" data-action="demo">Explore a finished example</button>
+        <button class="btn" data-action="resume-file" data-i18n="btn.resume">I have a save file to resume</button>
+        <button class="btn" data-action="demo" data-i18n="btn.demo">Explore a finished example</button>
       </div>
     </div>
   </main>
@@ -179,13 +181,14 @@
 <!-- ================================================================ Tool -->
 <div id="tool-view" hidden>
   <header class="topbar">
-    <button class="btn small" data-action="toggle-nav" aria-controls="sidebar" aria-expanded="false">☰ Steps</button>
+    <button class="btn small" data-action="toggle-nav" aria-controls="sidebar" aria-expanded="false" data-i18n="top.steps">☰ Steps</button>
     <span class="mini-brand"><span data-mark="tile"></span>EIA</span>
     <span class="step-pill" id="topbar-step"></span>
+    <span data-lang-slot="top-lang"></span>
   </header>
   <div class="scrim" data-action="close-nav"></div>
   <div class="shell">
-    <nav class="sidebar" id="sidebar" aria-label="Assessment steps"></nav>
+    <nav class="sidebar" id="sidebar" aria-label="Assessment steps" data-i18n-attr="aria-label:top.navLabel"></nav>
     <main class="main" id="main"><div class="main-inner" id="main-inner"></div></main>
   </div>
 </div>
@@ -193,12 +196,13 @@
 <input type="file" id="import-file" accept=".json,application/json" hidden>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<noscript><p style="padding:2rem;font-family:sans-serif">This tool needs JavaScript enabled to run.</p></noscript>
+<noscript><p style="padding:2rem;font-family:sans-serif" data-i18n="noscript">This tool needs JavaScript enabled to run.</p></noscript>
 
 <script src="vendor/docx.umd.js" defer></script>
 <script src="js/framework.js" defer></script>
 <script src="js/diagram.js" defer></script>
 <script src="js/report.js" defer></script>
+<script src="js/page-cs.js" defer></script>
 <script src="js/app.js" defer></script>
 </body>
 </html>

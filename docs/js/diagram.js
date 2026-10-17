@@ -62,9 +62,9 @@ PATHWAY_DIAGRAM.lane = function (s) {
   }
 
   const LANES = [
-    { name: "Your startup", sub: "what you control", fill: "#F1F6F2", ink: "#1E6A47" },
-    { name: "Customers & users", sub: "adoption and behaviour", fill: "#FFF5EB", ink: "#B4531A" },
-    { name: "Environment", sub: "the claimed effect", fill: "#EEF4F8", ink: "#34608A" },
+    { name: L("Your startup", "Váš startup"), sub: L("what you control", "co máte v rukou"), fill: "#F1F6F2", ink: "#1E6A47" },
+    { name: L("Customers & users", "Zákazníci a uživatelé"), sub: L("adoption and behaviour", "přijetí a chování"), fill: "#FFF5EB", ink: "#B4531A" },
+    { name: L("Environment", "Životní prostředí"), sub: L("the claimed effect", "deklarovaný efekt"), fill: "#EEF4F8", ink: "#34608A" },
   ];
   const FONT = "Inter, 'Segoe UI', Helvetica, Arial, sans-serif";
 
@@ -86,7 +86,7 @@ PATHWAY_DIAGRAM.lane = function (s) {
     const chars = Math.floor((bw - 18) / 6.3);
     const o = [];
 
-    o.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="${FONT}" role="img" aria-label="${esc(`Cause-and-effect diagram: ${trackName}`)}">`);
+    o.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" font-family="${FONT}" role="img" aria-label="${esc(L(`Cause-and-effect diagram: ${trackName}`, `Diagram příčin a následků: ${tr(trackName)}`))}">`);
     o.push(`<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#5F6B63"/></marker>` +
       `<marker id="ah-o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#D9661F"/></marker></defs>`);
     o.push(`<rect width="${W}" height="${H}" fill="#FFFFFF"/>`);
@@ -98,7 +98,7 @@ PATHWAY_DIAGRAM.lane = function (s) {
       o.push(`<text x="14" y="${y + 22}" font-size="12.5" font-weight="700" fill="${ln.ink}">${esc(ln.name)}</text>`);
       o.push(`<text x="14" y="${y + 38}" font-size="10.5" fill="#5F6B63">${esc(ln.sub)}</text>`);
       if (!used[i] && i === 1) {
-        o.push(`<text x="${labelW + 10}" y="${y + 30}" font-size="10.5" font-style="italic" fill="#8A5A2B">No step here: nothing in this pathway depends on customers.</text>`);
+        o.push(`<text x="${labelW + 10}" y="${y + 30}" font-size="10.5" font-style="italic" fill="#8A5A2B">${esc(L("No step here: nothing in this pathway depends on customers.", "Žádný krok: nic v této cestě dopadu nezávisí na zákaznících."))}</text>`);
       }
       if (i === 1 && used[1] && opts.actor) {
         wrap(opts.actor, 19, 3).forEach((l, k) =>
@@ -127,22 +127,23 @@ PATHWAY_DIAGRAM.lane = function (s) {
       const { x, y } = pos[i];
       const dep = PATHWAY_DIAGRAM.dependence(s);
       const ev = PATHWAY_DIAGRAM.EVIDENCE_COLOR[s.evidence] || PATHWAY_DIAGRAM.EVIDENCE_COLOR["Not rated"];
-      const [head, ...rest] = String(s.stage || "").split(":");
+      const stageName = tr(String(s.stage || ""));
+      const [head, ...rest] = stageName.split(":");
       const title = rest.join(":").trim() || head;
-      o.push(`<g><title>${esc(`${s.stage}\n${s.description || "(not described yet)"}\nEvidence: ${s.evidence || "Not rated"}`)}</title>`);
+      o.push(`<g><title>${esc(`${stageName}\n${s.description || L("(not described yet)", "(zatím nepopsáno)")}\n${L("Evidence", "Důkazy")}: ${tr(s.evidence || "Not rated")}`)}</title>`);
       o.push(`<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="9" fill="#FFFFFF" stroke="${dep !== "none" ? "#D9661F" : "#C9D4CC"}" stroke-width="${dep !== "none" ? 1.8 : 1.2}"/>`);
       o.push(`<rect x="${x}" y="${y}" width="6" height="${bh}" rx="3" fill="${ev}"/>`);
       let ty = y + 17;
       o.push(`<text x="${x + 14}" y="${ty}" font-size="9.5" font-weight="700" letter-spacing=".06em" fill="#5F6B63">${esc(head.toUpperCase())}</text>`);
       wrap(title, chars, 2).forEach(l => { ty += 14; o.push(`<text x="${x + 14}" y="${ty}" font-size="11.5" font-weight="700" fill="#1C2A22">${esc(l)}</text>`); });
       const desc = (s.description || "").trim();
-      wrap(desc || "Not described yet", chars + 2, ty > y + 40 ? 2 : 3).forEach(l => {
+      wrap(desc || L("Not described yet", "Zatím nepopsáno"), chars + 2, ty > y + 40 ? 2 : 3).forEach(l => {
         ty += 13;
         o.push(`<text x="${x + 14}" y="${ty}" font-size="10" fill="${desc ? "#4A564F" : "#9AA39D"}"${desc ? "" : ' font-style="italic"'}>${esc(l)}</text>`);
       });
       if (dep !== "none") {
         const label = REF.DEPENDENCE_SHORT[dep];
-        const pw = label.length * 5.6 + 16;
+        const pw = label.length * 5.4 + 16;
         o.push(`<rect x="${x + bw - pw - 6}" y="${y - 9}" width="${pw}" height="18" rx="9" fill="#D9661F"/>`);
         o.push(`<text x="${x + bw - pw / 2 - 6}" y="${y + 3.5}" font-size="9.5" font-weight="700" fill="#FFFFFF" text-anchor="middle">${esc(label)}</text>`);
       }
@@ -152,17 +153,17 @@ PATHWAY_DIAGRAM.lane = function (s) {
     // legend
     const ly = laneY[2] + laneHs[2] + 18;
     let lx = 14;
-    o.push(`<text x="${lx}" y="${ly}" font-size="10.5" font-weight="700" fill="#1C2A22">Evidence:</text>`);
+    o.push(`<text x="${lx}" y="${ly}" font-size="10.5" font-weight="700" fill="#1C2A22">${esc(L("Evidence:", "Důkazy:"))}</text>`);
     lx += 62;
     Object.entries(PATHWAY_DIAGRAM.EVIDENCE_COLOR).forEach(([k, c]) => {
-      const lbl = k.split(" (")[0];
+      const lbl = tr(k).split(" (")[0];
       o.push(`<rect x="${lx}" y="${ly - 9}" width="10" height="10" rx="2" fill="${c}"/><text x="${lx + 14}" y="${ly}" font-size="10.5" fill="#4A564F">${esc(lbl)}</text>`);
       lx += 24 + lbl.length * 6;
     });
     lx += 14;
     o.push(`<path d="M${lx} ${ly - 4} L${lx + 26} ${ly - 4}" stroke="#D9661F" stroke-width="2.6" marker-end="url(#ah-o)"/>`);
-    o.push(`<text x="${lx + 34}" y="${ly}" font-size="10.5" fill="#4A564F">handover to customers</text>`);
-    o.push(`<text x="14" y="${ly + 19}" font-size="10" fill="#5F6B63">Orange boxes only happen if customers adopt the product or change what they do. A working technology alone does not get you past them.</text>`);
+    o.push(`<text x="${lx + 34}" y="${ly}" font-size="10.5" fill="#4A564F">${esc(L("handover to customers", "předání zákazníkům"))}</text>`);
+    o.push(`<text x="14" y="${ly + 19}" font-size="10" fill="#5F6B63">${esc(L("Orange boxes only happen if customers adopt the product or change what they do. A working technology alone does not get you past them.", "Oranžové kroky nastanou jen tehdy, když zákazníci produkt přijmou nebo změní, co dělají. Samotná fungující technologie přes ně nepřevede."))}</text>`);
     o.push(`</svg>`);
     return { svg: o.join(""), width: W, height: H };
   };

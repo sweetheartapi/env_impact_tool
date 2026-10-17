@@ -1,5 +1,5 @@
 // Regression tests for the browser version's rules (docs/js/framework.js and
-// docs/js/report.js). Run with:  node --test tests/web/
+// docs/js/report.js). Run with:  node --test tests/web/*.test.mjs
 // No dependencies: the scripts are loaded into a sandbox the way the
 // browser loads them.
 import { test } from "node:test";
@@ -11,7 +11,7 @@ import path from "node:path";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const ctx = vm.createContext({ window: {}, console });
-for (const f of ["docs/js/framework.js", "docs/js/report.js"]) {
+for (const f of ["docs/js/i18n.js", "docs/js/framework.js", "docs/js/report.js"]) {
   vm.runInContext(readFileSync(path.join(root, f), "utf8"), ctx, { filename: f });
 }
 vm.runInContext("this.REF = REF; this.SCORING = SCORING; this.REPORT = REPORT;", ctx);
@@ -214,4 +214,57 @@ test("the Markdown report renders and contains the action plan", () => {
   assert.match(md, /Evidence readiness/);
   assert.match(md, /Appendix: Recommendation Rules/);
   assert.doesNotMatch(md, /undefined/);
+});
+
+// ------------------------------------------------------------------ Czech --
+// A second sandbox with the language forced to Czech. The rules must fire the
+// same way; only the wording changes. Stored values stay English.
+
+const loadIn = lang => {
+  const c = vm.createContext({ window: {}, console, EIA_LANG: lang });
+  for (const f of ["docs/js/i18n.js", "docs/js/framework.js", "docs/js/report.js"]) {
+    vm.runInContext(readFileSync(path.join(root, f), "utf8"), c, { filename: f });
+  }
+  vm.runInContext("this.SCORING = SCORING; this.REPORT = REPORT; this.I18N = I18N;", c);
+  return c;
+};
+const CS = loadIn("cs");
+
+test("Czech mode fires the same rules as English", () => {
+  assert.equal(CS.I18N.lang, "cs");
+  for (const st of [fieldsense(), baseState()]) {
+    const en = SCORING.nextSteps(st), cs = CS.SCORING.nextSteps(st);
+    const j = x => JSON.stringify([...x]);   // arrays from another sandbox: compare as JSON
+    assert.equal(j(cs.fired), j(en.fired));
+    assert.equal(j(cs.actions.map(a => a.id)), j(en.actions.map(a => a.id)));
+    assert.notEqual(j(cs.actions.map(a => a.title)), j(en.actions.map(a => a.title)));
+  }
+});
+
+test("Czech claim wording is checked like English", () => {
+  const base = { level: "Projected", quality: "medium", baseline: "průměr 2025", boundary: "sezóna 2027" };
+  const firm = CS.SCORING.claimGaps("x", { ...base, claim: "FieldSense sníží spotřebu vody o 18 % na hektar." }, null, {});
+  assert.ok(firm.some(g => g.kind === "wording"), "a firm Czech projection is flagged");
+  const hedged = CS.SCORING.claimGaps("x", { ...base, claim: "Spotřeba vody na hektar by mohla do roku 2027 klesnout až o 18 %." }, null, {});
+  assert.ok(!hedged.some(g => g.kind === "wording"), "a hedged Czech projection passes");
+  // Czech 'by' must not excuse an English claim
+  assert.ok(SCORING.claimGaps("x", { ...base, claim: "FieldSense will cut water use by 18% per hectare." }, null, {}).some(g => g.kind === "wording"));
+});
+
+test("the Czech report is Czech, and the save file stays language-independent", () => {
+  const st = fieldsense();
+  const md = CS.REPORT.toMarkdown(CS.REPORT.assemble(st));
+  assert.match(md, /Akční plán/);
+  assert.doesNotMatch(md, /undefined|\*\*Action plan\*\*/);
+  const back = CS.REPORT.importState(CS.REPORT.exportState(st));
+  assert.equal(back.stage, st.stage);
+  assert.equal(JSON.stringify(Object.keys(back.selected_indicators)), JSON.stringify(Object.keys(st.selected_indicators)));
+});
+
+test("the Czech FieldSense sample has the same answers as the English one", () => {
+  const en = JSON.parse(readFileSync(path.join(root, "docs/samples/FieldSense.json"), "utf8")).state;
+  const cs = JSON.parse(readFileSync(path.join(root, "docs/samples/FieldSense.cs.json"), "utf8")).state;
+  for (const k of ["stage", "mechanism", "orientation", "customer_types", "revenue_models", "value_drivers"]) assert.deepEqual(cs[k], en[k], k);
+  assert.deepEqual(Object.keys(cs.selected_indicators), Object.keys(en.selected_indicators));
+  for (const [k, u] of Object.entries(en.uncertainty)) assert.equal(cs.uncertainty[k].level, u.level, k);
 });
