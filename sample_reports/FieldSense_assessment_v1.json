@@ -72,7 +72,7 @@
         "feasibility": "Medium",
         "relevance": "High",
         "unit": "qualitative rating + evidence description",
-        "current_value": "Self-reported survey (n=22 of 62): 71% report reduced irrigation frequency; no independent verification yet",
+        "current_value": "Self-reported survey (n=22 of 62): 71% say they irrigate less often; no metered verification yet",
         "target": "Move to metered verification on a subset of farms",
         "frequency": "Quarterly",
         "data_source": "Farmer survey (self-report)",
@@ -105,22 +105,22 @@
         "conditions": ""
       },
       "Quality / reliability of adoption evidence": {
-        "level": "Modelled",
-        "claim": "71% of surveyed farmers self-report reduced irrigation frequency.",
+        "level": "Measured",
+        "claim": "In a self-reported survey, 71% of responding pilot farmers (22 of 62 farms) say they irrigate less often since using FieldSense.",
         "quality": "low",
         "baseline": "Farmers' own recollection of how often they irrigated before using FieldSense",
         "sources": "Self-reported survey of 22 of 62 enrolled farms",
         "boundary": "22 of 62 pilot farms that answered the 2026 mid-season survey; self-selected respondents.",
-        "assumptions": "Social-desirability bias likely inflates positive responses somewhat; irrigating less often does not necessarily mean using less water.",
-        "conditions": "Would look different with a larger, randomly sampled survey, or with metered verification instead of self-report."
+        "assumptions": "This measures what farmers report, not how much water they use: irrigating less often can still mean the same or more water per irrigation. Social-desirability bias likely inflates positive answers.",
+        "conditions": "Would look different with a larger, randomly sampled survey, or with metered water use instead of self-report."
       },
       "Avoided physical harm per unit of adoption (domain-specific)": {
         "level": "Projected",
-        "claim": "We estimate an approximate 18% reduction in water withdrawal per irrigated hectare versus the regional baseline.",
+        "claim": "Scenario: if pilot farms follow the recommendations through the 2027 season, water withdrawal per irrigated hectare could fall by up to 18% compared with the 2025 regional average. Not yet measured on FieldSense farms.",
         "quality": "medium",
-        "baseline": "Regional average water withdrawal per irrigated hectare (published statistics)",
+        "baseline": "2025 regional average water withdrawal per irrigated hectare (published statistics)",
         "sources": "Published agronomic studies of comparable sensor-guided irrigation systems in other regions",
-        "boundary": "Irrigation water applied per hectare on enrolled farms over one season; excludes pumping energy and any expansion of irrigated area.",
+        "boundary": "Scenario for the 2027 irrigation season: water applied per hectare on enrolled farms; excludes pumping energy and any expansion of irrigated area.",
         "assumptions": "Not yet based on FieldSense's own metered data; assumes pilot farms behave like the farms in the published studies.",
         "conditions": "Actual savings could be considerably lower if farmers under-trust recommendations during high-risk growth stages (e.g. flowering) and over-water as a precaution."
       }

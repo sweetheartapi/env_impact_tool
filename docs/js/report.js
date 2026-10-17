@@ -63,9 +63,10 @@ REPORT.assemble = function (state) {
       const e = (state.selected_indicators || {})[n] || {};
       const st = SCORING.pathwayStage(state.pathway, e.pathway_link);
       return { name: n, u, link: e.pathway_link || "", stage: st,
-        gaps: SCORING.claimGaps(n, u, e, state.pathway) };
+        gaps: SCORING.claimGaps(n, u, e, state.pathway), kind: REF.indicatorKind(n, e) };
     }),
     next_steps: SCORING.nextSteps(state),
+    plan: state.plan || {},
     alignment: SCORING.alignment(state),
     references,
     stage_note: REF.STAGE_GUIDANCE[state.stage].note,
@@ -105,7 +106,19 @@ const kindReal = (n, e) => !!(REF.INDICATOR_KINDS[REF.indicatorKind(n, e)] || {}
 const qualityLabel = q => (REF.EVIDENCE_QUALITY.find(([k]) => k === (q || "")) || ["", "Not assessed yet"])[1];
 const gapCount = row => row.gaps.filter(g => g.sev === "warning").length;
 
-const ALIGN_VERDICT = { aligned: "Aligned", partly: "Partly aligned", independent: "Not linked", unclear: "Unclear" };
+// Evidence readiness: plain counts, never a score (mirrors step 5).
+function readinessLine(r) {
+  const rows = r.claim_rows;
+  const mo = rows.filter(x => x.u.level === "Measured" && x.kind === "outcome").length;
+  const hq = rows.filter(x => x.u.quality === "high").length;
+  return `${mo} measured real-world outcome claim(s); ${hq} of ${rows.length} claim(s) with high-quality evidence; ` +
+    `${r.alignment.verified} of ${r.alignment.assumptions.length} commercial assumption(s) verified. Counts, not a score.`;
+}
+const planRows = r => r.next_steps.actions.slice(0, SCORING.PLAN_SIZE).map((a, i) => {
+  const p = r.plan[a.id] || {};
+  return { n: i + 1, a, owner: p.owner || "", due: p.due || "", done: p.done_evidence || "" };
+});
+const issueCell = row => gapCount(row) ? `${gapCount(row)} issue${gapCount(row) > 1 ? "s" : ""}` : SCORING.claimWritten(row.u) ? "none found" : "not checked";
 const alignStatus = k => (SCORING.ALIGN_STATUS.find(([v]) => v === k) || ["", "Not checked yet"])[1];
 const ALIGN_SCOPE = "Where the environmental benefit depends on commercial assumptions. Not a commercial viability score and not business due diligence: commercial questions appear only where they decide whether the environmental benefit happens or can be evidenced.";
 
@@ -132,9 +145,10 @@ REPORT.toMarkdown = function (r) {
   if (r.customer.type_label) L.push(`- **Customer:** ${r.customer.type_label}`);
   L.push(`- **Core indicator set:** ${core.length} indicator(s)` + (core.length ? ": " + core.map(([n]) => n).join("; ") : ""));
   if (Object.keys(counts).length) L.push(`- **Evidence base:** ${evidenceLine(counts)}`);
+  L.push(`- **Evidence readiness:** ${readinessLine(r)}`);
   L.push(`- **Integrity checks:** ${warn.length} warning(s)` + (warn.length ? ". See Section 5" : ""));
   if (r.next_steps.actions.length) L.push(`- **Next steps:** ${r.next_steps.actions.length} recommended. See Section 7`);
-  if (r.alignment.applies) L.push(`- **Impact–business alignment:** ${ALIGN_VERDICT[r.alignment.verdict]}; ${r.alignment.assumptions.filter(a => a.status !== "validated").length} of ${r.alignment.assumptions.length} critical commercial assumptions not yet validated. See Section 6`);
+  if (r.alignment.applies) L.push(`- **Impact–business alignment:** ${r.alignment.verdict_label}; ${r.alignment.assumptions.filter(a => a.status !== "validated").length} of ${r.alignment.assumptions.length} critical commercial assumptions not yet validated. See Section 6`);
   if (m.next_review_milestone) L.push(`- **Next scheduled review:** ${m.next_review_milestone}`);
   L.push("");
 
@@ -183,10 +197,10 @@ REPORT.toMarkdown = function (r) {
   L.push("## 4. Claims & Evidence");
   if (!r.claim_rows.length) L.push("_No claims labelled yet._");
   else {
-    L.push("| Indicator | Claim | Level | Quality | Baseline | Sources | Gaps |");
+    L.push("| Indicator | Claim | Level | Quality | Baseline | Sources | Issues |");
     L.push("| --- | --- | --- | --- | --- | --- | --- |");
     const cellMd = t => String(t || "").replace(/\|/g, "/").replace(/\n/g, " ");
-    r.claim_rows.forEach(row => L.push(`| ${cellMd(row.name)} | ${cellMd(row.u.claim) || "—"} | ${row.u.level || "—"} | ${REF.QUALITY_SHORT[row.u.quality || ""]} | ${row.u.baseline ? "yes" : SCORING.COMPARATIVE.test(row.u.claim || "") ? "missing" : "not needed"} | ${row.u.sources ? "yes" : "missing"} | ${gapCount(row) || "none"} |`));
+    r.claim_rows.forEach(row => L.push(`| ${cellMd(row.name)} | ${cellMd(row.u.claim) || "—"} | ${row.u.level || "—"} | ${REF.QUALITY_SHORT[row.u.quality || ""]} | ${row.u.baseline ? "yes" : SCORING.COMPARATIVE.test(row.u.claim || "") ? "missing" : "not needed"} | ${row.u.sources ? "yes" : "missing"} | ${issueCell(row)} |`));
     L.push("");
   }
   r.claim_rows.forEach(row => {
@@ -216,7 +230,7 @@ REPORT.toMarkdown = function (r) {
   L.push(`_${ALIGN_SCOPE}_\n`);
   L.push(`- **Customer value:** ${al.customer_value || "_(not described)_"}`);
   L.push(`- **Environmental value:** ${al.env_value || "_(not described)_"}`);
-  L.push(`- **Alignment:** ${ALIGN_VERDICT[al.verdict]}. ${al.verdict_text}\n`);
+  L.push(`- **Alignment:** ${al.verdict_label}. ${al.verdict_text}\n`);
   if (al.assumptions.length) {
     L.push("**Critical assumptions**");
     al.assumptions.forEach(a => {
@@ -229,6 +243,14 @@ REPORT.toMarkdown = function (r) {
 
   L.push("## 7. Recommendations & Points to Consider");
   L.push("_Generated by fixed decision rules (see the appendix), each traced to the answers that triggered it._\n");
+  if (r.next_steps.actions.length) {
+    L.push("**Action plan** (the three highest-priority actions)\n");
+    L.push("| # | Action | Priority | Owner | Deadline | Done when / evidence |");
+    L.push("| --- | --- | --- | --- | --- | --- |");
+    const c = t => String(t || "").replace(/\|/g, "/");
+    planRows(r).forEach(p => L.push(`| ${p.n} | **${c(p.a.title)}.** ${c(p.a.action)} | ${SCORING.PRIORITY_LABEL[p.a.priority]} | ${c(p.owner) || "—"} | ${p.due || "—"} | ${c(p.done) || "—"} |`));
+    L.push("\n**Why these actions** (all recommendations, highest priority first)\n");
+  }
   const mdRec = (a, i) => {
     L.push(`### ${i + 1}. ${a.title} (${a.type === "strength" ? "strength" : SCORING.PRIORITY_LABEL[a.priority] + " priority"}, rule ${a.id.split(".")[0]})`);
     L.push(`- **Detected condition:** ${a.condition}`);
@@ -322,10 +344,11 @@ REPORT.toHtmlBody = function (r) {
     `<b>Primary unit of analysis:</b> ${esc(c.unit_of_analysis)}`,
     `<b>Core indicator set:</b> ${core.length} indicator(s)` + (core.length ? ": " + core.map(([n]) => esc(n)).join("; ") : ""),
     `<b>Evidence base:</b> ${esc(evidenceLine(levelCounts(r)))}`,
+    `<b>Evidence readiness:</b> ${esc(readinessLine(r))}`,
     `<b>Integrity checks:</b> ${warnN} warning(s)`,
   ].concat(r.customer.type_label ? [`<b>Customer:</b> ${esc(r.customer.type_label)}`] : [],
     r.next_steps.actions.length ? [`<b>Recommendations:</b> ${r.next_steps.actions.length} (Section 7)`] : [],
-    r.alignment.applies ? [`<b>Impact–business alignment:</b> ${ALIGN_VERDICT[r.alignment.verdict]}; ${r.alignment.assumptions.filter(a => a.status !== "validated").length} of ${r.alignment.assumptions.length} critical assumptions not yet validated (Section 6)`] : [], [
+    r.alignment.applies ? [`<b>Impact–business alignment:</b> ${r.alignment.verdict_label}; ${r.alignment.assumptions.filter(a => a.status !== "validated").length} of ${r.alignment.assumptions.length} critical assumptions not yet validated (Section 6)`] : [], [
     `<b>Next scheduled review:</b> ${esc(m.next_review_milestone) || "(not set)"}`,
   ])));
 
@@ -372,11 +395,11 @@ REPORT.toHtmlBody = function (r) {
   P.push("<h2>4. Claims &amp; Evidence</h2>");
   if (!r.claim_rows.length) P.push("<p><i>No claims labelled yet.</i></p>");
   else {
-    P.push("<table class=\"claims\"><thead><tr><th>Indicator and claim</th><th>Level</th><th>Quality</th><th>Baseline</th><th>Sources</th><th>Gaps</th></tr></thead><tbody>" +
+    P.push("<table class=\"claims\"><thead><tr><th>Indicator and claim</th><th>Level</th><th>Quality</th><th>Baseline</th><th>Sources</th><th>Issues</th></tr></thead><tbody>" +
       r.claim_rows.map(row => `<tr><td><b>${esc(row.name)}</b>${row.u.claim ? `<br><i>“${esc(row.u.claim)}”</i>` : ""}</td>` +
         `<td>${esc(row.u.level || "—")}</td><td>${esc(REF.QUALITY_SHORT[row.u.quality || ""])}</td>` +
         `<td>${row.u.baseline ? "✓" : SCORING.COMPARATIVE.test(row.u.claim || "") ? "<span class=\"warn\">missing</span>" : "not needed"}</td><td>${row.u.sources ? "✓" : "<span class=\"warn\">missing</span>"}</td>` +
-        `<td>${gapCount(row) ? `<span class="warn">${gapCount(row)}</span>` : "none"}</td></tr>`).join("") + "</tbody></table>");
+        `<td>${gapCount(row) ? `<span class="warn">${esc(issueCell(row))}</span>` : esc(issueCell(row))}</td></tr>`).join("") + "</tbody></table>");
   }
   r.claim_rows.forEach(row => {
     const u = row.u;
@@ -403,7 +426,7 @@ REPORT.toHtmlBody = function (r) {
   P.push("<h2>6. Impact–Business Alignment</h2>");
   P.push(`<p class="meta">${esc(ALIGN_SCOPE)}</p>`);
   P.push(`<table class="claims"><tr><th>Customer value</th><th>Environmental value</th></tr><tr><td>${esc(alH.customer_value || "(not described)")}</td><td>${esc(alH.env_value || "(not described)")}</td></tr></table>`);
-  P.push(`<p><b>Alignment: ${esc(ALIGN_VERDICT[alH.verdict])}.</b> ${esc(alH.verdict_text)}</p>`);
+  P.push(`<p><b>Alignment: ${esc(alH.verdict_label)}.</b> ${esc(alH.verdict_text)}</p>`);
   if (alH.assumptions.length) {
     P.push("<h3>Critical assumptions</h3>");
     P.push(li(alH.assumptions.map(a => `<b>${esc(a.text)}</b> <span class="badge ${a.status === "validated" ? "b-Measured" : a.status === "some" ? "b-Modelled" : "b-q"}">${esc(alignStatus(a.status))}</span>` +
@@ -412,6 +435,11 @@ REPORT.toHtmlBody = function (r) {
 
   P.push("<h2>7. Recommendations &amp; Points to Consider</h2>");
   P.push("<p class=\"meta\">Generated by fixed decision rules (see the appendix), each traced to the answers that triggered it.</p>");
+  if (r.next_steps.actions.length) {
+    P.push("<h3>Action plan</h3><table class=\"claims\"><thead><tr><th>#</th><th>Action</th><th>Priority</th><th>Owner</th><th>Deadline</th><th>Done when / evidence</th></tr></thead><tbody>" +
+      planRows(r).map(p => `<tr><td>${p.n}</td><td><b>${esc(p.a.title)}.</b> ${esc(p.a.action)}</td><td>${esc(SCORING.PRIORITY_LABEL[p.a.priority])}</td><td>${esc(p.owner) || "—"}</td><td>${esc(p.due) || "—"}</td><td>${esc(p.done) || "—"}</td></tr>`).join("") +
+      "</tbody></table><h3>Why these actions</h3>");
+  }
   const htmlRec = (a, i) => {
     const badge = a.type === "strength" ? `<span class="badge b-Measured">Strength</span>` :
       `<span class="badge ${a.priority === 3 ? "b-hi" : a.priority === 2 ? "b-Modelled" : "b-q"}">${esc(SCORING.PRIORITY_LABEL[a.priority])} priority</span>`;
@@ -526,10 +554,11 @@ REPORT.toDocx = async function (r, extras = {}) {
     `Primary unit of analysis: ${c.unit_of_analysis}`,
     `Core indicator set: ${core.length} indicator(s)` + (core.length ? " — " + core.map(([n]) => n).join("; ") : ""),
     `Evidence base: ${evidenceLine(levelCounts(r))}`,
+    `Evidence readiness: ${readinessLine(r)}`,
     `Integrity checks: ${warnN} warning(s)` + (warnN ? " — see Section 5" : ""),
     ...(r.customer.type_label ? [`Customer: ${r.customer.type_label}`] : []),
     ...(r.next_steps.actions.length ? [`Recommendations: ${r.next_steps.actions.length} — see Section 7`] : []),
-    ...(r.alignment.applies ? [`Impact–business alignment: ${ALIGN_VERDICT[r.alignment.verdict]}; ${r.alignment.assumptions.filter(a => a.status !== "validated").length} of ${r.alignment.assumptions.length} critical assumptions not yet validated — see Section 6`] : []),
+    ...(r.alignment.applies ? [`Impact–business alignment: ${r.alignment.verdict_label}; ${r.alignment.assumptions.filter(a => a.status !== "validated").length} of ${r.alignment.assumptions.length} critical assumptions not yet validated — see Section 6`] : []),
     `Next scheduled review: ${m.next_review_milestone || "(not set)"}`,
   ].forEach(t => children.push(bullet(t)));
 
@@ -622,7 +651,7 @@ REPORT.toDocx = async function (r, extras = {}) {
     const cw = [34, 13, 12, 12, 12, 17];
     const trows = [new TableRow({
       tableHeader: true,
-      children: ["Indicator and claim", "Level", "Quality", "Baseline", "Sources", "Gaps"].map((t, i) =>
+      children: ["Indicator and claim", "Level", "Quality", "Baseline", "Sources", "Issues"].map((t, i) =>
         cell(t, { bold: true, fill: DOCX_C.green, color: "FFFFFF", width: cw[i] })),
     })];
     r.claim_rows.forEach((row, idx) => {
@@ -634,7 +663,7 @@ REPORT.toDocx = async function (r, extras = {}) {
         cell(REF.QUALITY_SHORT[row.u.quality || ""], { fill, width: cw[2] }),
         cell(row.u.baseline ? "✓" : SCORING.COMPARATIVE.test(row.u.claim || "") ? "missing" : "not needed", { fill, width: cw[3], color: row.u.baseline ? DOCX_C.green : SCORING.COMPARATIVE.test(row.u.claim || "") ? DOCX_C.red : DOCX_C.grey }),
         cell(row.u.sources ? "✓" : "missing", { fill, width: cw[4], color: row.u.sources ? DOCX_C.green : DOCX_C.red }),
-        cell(g ? `${g} gap${g > 1 ? "s" : ""}` : "none", { fill, width: cw[5], bold: !!g, color: g ? DOCX_C.red : DOCX_C.green }),
+        cell(issueCell(row), { fill, width: cw[5], bold: !!g, color: g ? DOCX_C.red : DOCX_C.grey }),
       ] }));
     });
     children.push(new Table({ rows: trows, width: { size: TABLE_TW, type: WidthType.DXA }, columnWidths: twips(cw), layout: TableLayoutType.FIXED }));
@@ -675,7 +704,7 @@ REPORT.toDocx = async function (r, extras = {}) {
       new TableRow({ children: [alD.customer_value || "(not described)", alD.env_value || "(not described)"].map(t => cell(t, { width: 50 })) }),
     ],
   }));
-  children.push(new Paragraph({ spacing: { before: 160 }, children: [new TextRun({ text: `Alignment: ${ALIGN_VERDICT[alD.verdict]}. `, bold: true }), new TextRun(alD.verdict_text)] }));
+  children.push(new Paragraph({ spacing: { before: 160 }, children: [new TextRun({ text: `Alignment: ${alD.verdict_label}. `, bold: true }), new TextRun(alD.verdict_text)] }));
   if (alD.assumptions.length) {
     children.push(h("Critical assumptions", HeadingLevel.HEADING_2));
     const stColor = { validated: DOCX_C.green, some: DOCX_C.gold, unchecked: "D9661F" };
@@ -693,6 +722,19 @@ REPORT.toDocx = async function (r, extras = {}) {
   // Recommendations & points to consider
   children.push(h("7. Recommendations & Points to Consider", HeadingLevel.HEADING_1));
   children.push(new Paragraph({ children: [new TextRun({ text: "Generated by fixed decision rules (see the appendix), each traced to the answers that triggered it.", italics: true, size: 19, color: DOCX_C.grey })] }));
+  if (r.next_steps.actions.length) {
+    children.push(h("Action plan", HeadingLevel.HEADING_2));
+    const pw = [5, 45, 11, 12, 11, 16];
+    children.push(new Table({
+      width: { size: TABLE_TW, type: WidthType.DXA }, columnWidths: twips(pw), layout: TableLayoutType.FIXED,
+      rows: [new TableRow({ tableHeader: true, children: ["#", "Action", "Priority", "Owner", "Deadline", "Done when / evidence"].map((t, i) => cell(t, { bold: true, fill: DOCX_C.green, color: "FFFFFF", width: pw[i] })) })]
+        .concat(planRows(r).map(p => new TableRow({ children: [
+          cell(String(p.n), { width: pw[0], bold: true }), cell(`${p.a.title}. ${p.a.action}`, { width: pw[1] }),
+          cell(SCORING.PRIORITY_LABEL[p.a.priority], { width: pw[2] }), cell(p.owner || "—", { width: pw[3] }),
+          cell(p.due || "—", { width: pw[4] }), cell(p.done || "—", { width: pw[5] })] }))),
+    }));
+    children.push(h("Why these actions", HeadingLevel.HEADING_2));
+  }
   const prColor = { 3: DOCX_C.red, 2: DOCX_C.gold, 1: DOCX_C.grey };
   const docxRec = (a, i) => {
     children.push(new Paragraph({
@@ -794,7 +836,7 @@ REPORT.PERSISTED_KEYS = [
   "mechanism", "orientation", "is_hybrid", "secondary_mechanism",
   "pathway", "weakest_links",
   "selected_indicators", "custom_indicators", "custom_kinds", "uncertainty",
-  "assessment_version", "next_review_milestone", "review_notes", "alignment",
+  "assessment_version", "next_review_milestone", "review_notes", "alignment", "plan",
 ];
 
 REPORT.exportState = function (state) {

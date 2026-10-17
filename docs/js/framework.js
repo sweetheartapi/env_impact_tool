@@ -51,6 +51,17 @@ REF.DIAGNOSTIC_MECHANISM = {
   ],
 };
 
+// Contrasting examples shown under the orientation question (added Oct 2026
+// after reviewers found the question ambiguous for products that have both
+// an environmental purpose and a stand-alone commercial case).
+REF.ORIENTATION_EXAMPLES = {
+  primary: ["A carbon-removal service: without the climate benefit there is nothing to sell.",
+    "Compostable packaging bought because it replaces plastic, at a higher price."],
+  secondary: ["Route-planning software bought to cut fuel and driver costs; lower emissions are a by-product.",
+    "A cloud platform that happens to run on renewable energy."],
+  both: "Many products have both an environmental purpose and a commercial case that would stand on its own (e.g. irrigation sensors that save water and pumping costs). Answer for how you pitch and design the product today. If you are genuinely unsure, note why in the description: this question is still being tested with founders.",
+};
+
 REF.DIAGNOSTIC_ORIENTATION = {
   question: "Imagine removing every environmental claim from your pitch. Would the core commercial case for your product still stand on its own?",
   options: [
@@ -87,7 +98,8 @@ REF.REVENUE_MODELS = [
 // Why a customer would pay, and whether the environmental benefit is part
 // of that reason. Multi-select.
 REF.VALUE_DRIVERS = [
-  ["cost", "It saves the customer money (lower energy, water, material or input costs)"],
+  ["cost", "It saves them money on the resource the environmental benefit is about (e.g. less water, energy, fuel or material bought)"],
+  ["cost_other", "It saves them money in other ways (e.g. labour, time, maintenance)"],
   ["compliance", "It helps them meet a regulation, permit or reporting duty"],
   ["reporting", "It gives them data for their own sustainability / ESG reporting or supplier requests"],
   ["premium", "It lets them charge more or win buyers who value sustainability"],
@@ -402,8 +414,18 @@ SCORING.groupByBucket = function (selected) {
 // pathway (optional) lets the claim be checked against the step it evidences.
 // ---------------------------------------------------------------------------
 
-SCORING.HEDGE = /\b(could|can|may|might|expect(ed|s)?|project(ed|ion)?|potential(ly)?|up to|aim(s|ing)?|target(s|ed)?|estimat(e|ed|es)|would|will|scenario|forecast)\b/i;
+// Wording checks are simple text patterns: prompts, not language
+// understanding. They look at each sentence that makes a quantitative or
+// comparative statement, so a hedge word elsewhere in the claim does not
+// excuse it. "can" and "will" are deliberately not hedges: "will cut water
+// use by 18%" states a projection as a certainty.
+SCORING.HEDGE = /\b(could|may|might|expect(ed|s)?|project(ed|ion|s)?|potential(ly)?|up to|aim(s|ing)? to|target(s|ed)?|estimat(e|ed|es)|would|scenario|forecast|if\b)/i;
 SCORING.COMPARATIVE = /(\d+(\.\d+)?\s?%|\breduc|\bsav(e|es|ed|ing)\b|\bless\b|\blower\b|\bfewer\b|\bavoid|\bcut(s)?\b|\bdecreas|\bimprov)/i;
+SCORING.DISCLOSES_SELF_REPORT = /\b(self[- ]?report|survey|surveyed|report(ed|s)? that|say(s)? (they|that)|according to (users|customers|farmers))/i;
+SCORING.MIN_CLAIM_WORDS = 4;
+
+SCORING.sentences = t => String(t || "").split(/(?<=[.!?;])\s+/).map(x => x.trim()).filter(Boolean);
+SCORING.claimWritten = u => !!u && (u.claim || "").trim().split(/\s+/).filter(Boolean).length >= SCORING.MIN_CLAIM_WORDS;
 
 SCORING.pathwayStage = function (pathway, link) {
   if (!link || !pathway) return null;
@@ -417,24 +439,37 @@ SCORING.claimGaps = function (name, u, entry, pathway) {
   const claim = (u.claim || "").trim();
   const q = u.quality || "";
   const level = u.level;
-  const add = (sev, msg) => gaps.push({ sev, msg });
+  // kind "wording" = a simple text-pattern prompt; the UI says so
+  const add = (sev, msg, kind = "evidence") => gaps.push({ sev, msg, kind });
 
-  if (claim && level === "Projected" && !SCORING.HEDGE.test(claim))
-    add("warning", "The claim reads as if it is already happening, but it is labelled Projected. Word it as a possibility, e.g. “could reduce … by up to …”.");
-  if (claim && level === "Modelled" && !/\b(estimat|model|calculat|approximately|about|around|roughly|~)/i.test(claim))
-    add("info", "The claim is modelled; say so in the wording (e.g. “an estimated …”).");
-  if (claim && SCORING.COMPARATIVE.test(claim) && !(u.baseline || "").trim())
-    add("warning", "The claim compares (less, lower, saves, a %), but no baseline is stated. Compared with what?");
-  if (level === "Measured" && q === "low")
-    add("warning", "Labelled Measured, but the evidence quality is low (e.g. self-reported or a tiny sample). Report both, so nobody reads it as validated.");
+  if (!SCORING.claimWritten(u)) {
+    add("info", "No claim is written yet (at least a short sentence), so the wording and baseline checks could not run.", "blank");
+  } else {
+    const assertive = SCORING.sentences(claim).filter(x => SCORING.COMPARATIVE.test(x));
+    if (level === "Projected" && assertive.some(x => !SCORING.HEDGE.test(x)))
+      add("warning", "Wording prompt: a projected figure reads as if it is already happening. Word it as a possibility for a stated scenario and period, e.g. “could reduce … by up to … by 2027 if …”.", "wording");
+    if (level === "Modelled" && !/\b(estimat|model|calculat|approximately|about|around|roughly|~)/i.test(claim))
+      add("info", "Wording prompt: the claim is modelled; say so (e.g. “an estimated …”).", "wording");
+    if (assertive.length && !(u.baseline || "").trim())
+      add("warning", "The claim compares (less, lower, saves, a %), but no baseline is stated. Compared with what?");
+  }
+  if (level === "Measured" && q === "low") {
+    if (SCORING.claimWritten(u) && SCORING.DISCLOSES_SELF_REPORT.test(claim))
+      add("info", "Measured, low quality: the wording discloses that this is reported, not observed. Do not present it as evidence of the environmental outcome itself.");
+    else
+      add("warning", "Labelled Measured, but the evidence quality is low (e.g. self-reported or a tiny sample). Say so in the claim, so nobody reads it as validated.");
+  }
   if ((level === "Measured" || level === "Modelled") && !(u.sources || "").trim())
     add("warning", `A ${level.toLowerCase()} claim needs its data source named.`);
   if (!q)
-    add("info", "Evidence quality is not assessed yet.");
-  if ((level === "Measured" || level === "Modelled") && claim && !(u.boundary || "").trim())
-    add("info", "State the boundary of the figure: what it includes and leaves out (period, sites or customers, life-cycle stages). Two honest figures can differ only because their boundaries differ.");
-  const st = SCORING.pathwayStage(pathway, entry && entry.pathway_link);
-  if (st && st.evidence === "Weak (assumption only)" && (level === "Measured" || q === "high"))
+    add("warning", "Evidence quality is not assessed. Without it, a reader cannot tell a survey from a meter reading.");
+  if ((level === "Measured" || level === "Modelled") && !(u.boundary || "").trim())
+    add("warning", "No boundary: state what the figure includes and leaves out (period, sites or customers, life-cycle stages). Two honest figures can differ only because their boundaries differ.");
+  const link = entry && entry.pathway_link;
+  const st = SCORING.pathwayStage(pathway, link);
+  if (link && !st)
+    add("warning", `The linked pathway step (“${link}”) no longer exists. Re-link the indicator in step 3.`);
+  if (st && st.evidence === "Weak (assumption only)" && ((level === "Measured" && q && q !== "low") || q === "high"))
     add("info", `This indicator evidences “${st.stage}”, which step 2 still rates as weak. If this evidence now supports it, update the rating in step 2.`);
   return gaps;
 };
@@ -502,7 +537,7 @@ SCORING.integrityChecks = function (selected, uncertainty, pathway) {
   }
 
   // 4. Materiality linkage: indicators should trace to the impact pathway
-  const unlinked = core.filter(([, e]) => !e.pathway_link).map(([n]) => n);
+  const unlinked = core.filter(([, e]) => !SCORING.pathwayStage(pathway, e.pathway_link)).map(([n]) => n);
   if (unlinked.length) {
     checks.push(["info", "Core indicators not linked to a pathway stage: " + unlinked.join("; ") +
       ". Linking each indicator to the step of the causal chain it evidences strengthens the materiality of the indicator set."]);
@@ -511,12 +546,18 @@ SCORING.integrityChecks = function (selected, uncertainty, pathway) {
   }
 
   // 4b. Claim-evidence gaps (wording, baselines, sources, quality)
-  const gw = SCORING.allClaimGaps(selected, uncertainty, pathway).filter(g => g.sev === "warning");
+  const allG = SCORING.allClaimGaps(selected, uncertainty, pathway);
+  const gw = allG.filter(g => g.sev === "warning");
+  const blank = [...new Set(allG.filter(g => g.kind === "blank").map(g => g.name))];
   if (gw.length) {
     const names = [...new Set(gw.map(g => g.name))];
-    checks.push(["warning", `${gw.length} claim–evidence gap(s) in: ${names.join("; ")}. See the claim–evidence overview in section 4.`]);
-  } else if (Object.keys(uncertainty || {}).length) {
-    checks.push(["ok", "No claim–evidence gaps: wording, baselines and sources match the evidence labels."]);
+    checks.push(["warning", `${gw.length} claim–evidence issue(s) in: ${names.join("; ")}. See the claims and evidence overview in section 4.`]);
+  }
+  if (blank.length) {
+    checks.push(["info", `No claim written yet for: ${blank.join("; ")}. These claims were not checked.`]);
+  }
+  if (!gw.length && Object.keys(uncertainty || {}).length && blank.length < Object.keys(uncertainty).length) {
+    checks.push(["info", "No issues detected by these automated checks. They look for missing baselines, sources, quality ratings and boundaries, and use simple text patterns for wording; they cannot tell whether the figures are true."]);
   }
 
   // 5. Missing assumption documentation on non-measured claims
@@ -541,6 +582,7 @@ SCORING.integrityChecks = function (selected, uncertainty, pathway) {
 // ===========================================================================
 
 SCORING.MAX_ACTIONS = 7;
+SCORING.PLAN_SIZE = 3;   // recommendations shown as the action plan, with owner and deadline
 
 SCORING.PRIORITY_LABEL = { 3: "High", 2: "Medium", 1: "Low" };
 SCORING.STAGE_LEAD = {
@@ -561,7 +603,7 @@ SCORING.RELEVANCE_PHRASE = {
 SCORING.RULES = [
   ["R01", "gap", "Name your customer", "Customer segment, revenue model or buyer is missing in step 1."],
   ["R02", "gap", "Name who has to change behaviour", "The impact mechanism is enabling, but nobody is named whose behaviour must change (step 1)."],
-  ["R03", "gap", "Test the weakest link", "A pathway step is rated “Weak (assumption only)” (step 2); at most two, later steps first."],
+  ["R03", "gap", "Test the weakest link(s)", "A pathway step is rated “Weak (assumption only)” (step 2); one recommendation covering up to two steps, later steps first."],
   ["R04", "gap", "Validate customer adoption", "Pathway steps depend on customer adoption or behaviour change, and none of them has moderate or strong evidence (step 2)."],
   ["R05", "gap", "Mark the steps that depend on customers", "The mechanism is enabling, but no pathway step is marked as depending on customers (step 2)."],
   ["R06", "gap", "Complete the impact pathway", "One or more pathway steps have no description (step 2)."],
@@ -575,7 +617,7 @@ SCORING.RULES = [
   ["R14", "gap", "Find out who gains and who would pay", "No reason for customers to buy is recorded, or only “no direct financial benefit yet” (step 1)."],
   ["R15", "gap", "Check a commercial assumption", "An impact–business alignment assumption is not validated (step 5); at most three, skipping those on a step R03 already covers."],
   ["R16", "gap", "Set the next review", "No review milestone is set (step 5)."],
-  ["S01", "strength", "Prepare an evidence summary", "A claim is Measured, of high evidence quality, has sources and documented assumptions, and has no claim–evidence gap (step 4)."],
+  ["S01", "strength", "Prepare an evidence summary", "A written claim is Measured, of high evidence quality, has sources, assumptions and a boundary, is linked to an existing pathway step, and has no claim–evidence warning (step 4)."],
   ["C01", "consider", "Which customer comes first?", "More than one customer segment is selected."],
   ["C02", "consider", "Is your impact data a selling point?", "Customer segment includes B2B."],
   ["C03", "consider", "How will you word claims to consumers?", "Customer segment includes B2C."],
@@ -631,6 +673,9 @@ SCORING.alignment = function (state) {
   const envValue = (impactStep && (impactStep.description || "").trim()) || "";
 
   // how the customer's reason to buy relates to the environmental benefit
+  // (the verdict below is only a structural reading of the answers; how
+  // confident it may sound depends on how many assumptions are verified,
+  // see the end of this function)
   const linked = drivers.filter(d => d === "cost" || d === "compliance");
   const indirect = drivers.filter(d => d === "reporting" || d === "premium");
   let verdict, verdictText;
@@ -639,15 +684,15 @@ SCORING.alignment = function (state) {
     verdictText = "No commercial reason to buy is recorded in step 1, so it is unclear what would drive the adoption your impact depends on.";
   } else if (linked.length) {
     verdict = "aligned";
-    verdictText = "The customer's reason to buy comes from the same change that produces the environmental benefit (" +
-      linked.map(d => d === "cost" ? "it saves them money" : "it helps them comply").join(", ") +
-      "). Commercial success and impact should move together, as long as the assumptions below hold.";
+    verdictText = "On your answers, the customer's reason to buy (" +
+      linked.map(d => d === "cost" ? "saving money on the same resource" : "meeting a regulation").join(", ") +
+      ") comes from the same change that produces the environmental benefit. If that holds, commercial success and impact move together.";
   } else if (indirect.length) {
     verdict = "partly";
     verdictText = "Customers pay for the environmental label or data rather than for the change itself. The benefit is only real if that data or label leads to an actual change, which is worth evidencing separately.";
   } else {
     verdict = "independent";
-    verdictText = "Customers would buy for reasons unrelated to the environmental benefit (e.g. performance). The impact then depends on how the product is used, not on why it is bought, so sales alone say little about impact.";
+    verdictText = "Customers would buy for reasons unrelated to the environmental benefit (e.g. performance, or savings in labour or time). The impact then depends on how the product is used, not on why it is bought, so sales alone say little about impact.";
   }
 
   const A = [];
@@ -701,9 +746,20 @@ SCORING.alignment = function (state) {
       "State the number of customers or hectares each projection assumes, and compare it with your actual sales pipeline.", "", ["Step 4 · an adoption or outcome claim is labelled Projected"]);
   }
 
+  // the headline never sounds more certain than the evidence: "aligned"
+  // is only reported as such once every critical assumption is validated
+  const nVal = A.filter(a => a.status === "validated").length;
+  const LABEL = {
+    aligned: A.length && nVal === A.length ? "Aligned: key assumptions validated"
+      : `Potential alignment: ${nVal ? `${nVal} of ${A.length}` : "no"} assumption${A.length === 1 ? "" : "s"} verified yet`,
+    partly: `Partial alignment: ${nVal} of ${A.length} assumptions verified`,
+    independent: "Not linked: sales do not imply impact",
+    unclear: "Unclear: no reason to buy recorded",
+  };
   return {
     customer_value: customerValue, env_value: envValue,
-    verdict, verdict_text: verdictText,
+    verdict, verdict_label: LABEL[verdict], verdict_text: verdictText,
+    verified: nVal,
     assumptions: A,
     applies: A.length > 0,
   };
@@ -785,17 +841,20 @@ SCORING.nextSteps = function (state) {
   // R03 weakest links (later links in the chain first)
   const rank = s => /impact/i.test(s.stage) ? 0 : /outcome/i.test(s.stage) ? 1 : /output/i.test(s.stage) ? 2 : 3;
   const weak = stagesFlat.filter(s => s.evidence === "Weak (assumption only)").sort((x, y) => rank(x) - rank(y));
-  weak.slice(0, 2).forEach((s, k) => {
-    let action = "Design one small, cheap test that would confirm or refute it before you build further claims on it.";
-    if (enabling && /outcome|behav/i.test(s.stage)) action += " For an adoption-driven pathway, compare usage logs or meter readings for a few pilot customers before and after they adopt.";
-    else if (/impact/i.test(s.stage)) action += " Agree a baseline first: what would have happened without your product?";
-    rec(`R03.${k + 1}`, [2, 3, 3, 3], "Test the weakest link",
-      `“${s.stage}” rests on an assumption only` + (s.assumption ? `: “${s.assumption}”` : "."),
-      "Every claim further down the chain inherits this uncertainty. If the assumption fails, the environmental benefit does not happen, however well the technology works.",
-      action, [stepAns(2, `${s.track} → ${s.stage}`, `evidence “${ev(s)}”`)],
+  if (weak.length) {
+    const top = weak.slice(0, 2);
+    let action = "Design one small, cheap test for " + (top.length > 1 ? "each, starting with the first" : "it") + ", and run it before you build further claims on " + (top.length > 1 ? "them" : "it") + ".";
+    if (enabling && top.some(s => /outcome|behav/i.test(s.stage))) action += " For behaviour change, compare usage logs or meter readings for a few pilot customers before and after they adopt.";
+    else if (top.some(s => /impact/i.test(s.stage))) action += " For the impact step, agree a baseline first: what would have happened without your product?";
+    rec("R03", [2, 3, 3, 3], top.length > 1 ? "Test your weakest links" : "Test the weakest link",
+      top.map(s => `“${s.stage}” rests on an assumption only` + (s.assumption ? ` (“${s.assumption}”)` : "")).join("; ") + "." +
+        (weak.length > 2 ? ` ${weak.length - 2} more step(s) are also rated weak.` : ""),
+      "Every claim further down the chain inherits this uncertainty. If an assumption fails, the environmental benefit does not happen, however well the technology works.",
+      action, top.map(s => stepAns(2, `${s.track} → ${s.stage}`, `evidence “${ev(s)}”`)),
       ["At ideation an untested assumption is normal; write the test down now so the first pilot can answer it.", null, null,
        "At this stage an untested assumption in the chain is what a due-diligence reviewer will find first."]);
-  });
+  }
+
 
   // R04 customer adoption not validated / R05 customer steps not marked
   const custSteps = stagesFlat.filter(s => s.change === "adoption" || s.change === "behaviour");
@@ -903,8 +962,11 @@ SCORING.nextSteps = function (state) {
   });
 
   // S01 strong evidence available: a claim worth showing off
+  // strength requires a written claim, sources, assumptions, a boundary,
+  // a link to an existing pathway step and no claim-evidence warning
   const strong = Object.entries(unc).filter(([n, u]) => u.level === "Measured" && u.quality === "high" &&
-    (u.sources || "").trim() && (u.assumptions || "").trim() &&
+    SCORING.claimWritten(u) && (u.sources || "").trim() && (u.assumptions || "").trim() && (u.boundary || "").trim() &&
+    SCORING.pathwayStage(pathway, (selected[n] || {}).pathway_link) &&
     !SCORING.claimGaps(n, u, selected[n], pathway).some(g => g.sev === "warning"));
   if (strong.length) {
     const [n, u] = strong[0];

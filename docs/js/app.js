@@ -45,6 +45,7 @@
     next_review_milestone: "",
     review_notes: "",
     alignment: {},        // impact-business alignment: key -> {status, note}
+    plan: {},             // action plan: recommendation id -> {owner, due, done_evidence}
     demo: false,          // true while exploring the built-in FieldSense example (never exported)
     estimator: {},
   });
@@ -93,7 +94,7 @@
     if (!["Primary", "Secondary"].includes(s.orientation)) s.orientation = null;
     s.is_hybrid = !!s.is_hybrid && !!s.mechanism;
     s.secondary_mechanism = s.is_hybrid ? (s.mechanism === "Direct" ? "Enabling" : "Direct") : null;
-    ["pathway", "selected_indicators", "custom_indicators", "custom_kinds", "uncertainty", "estimator", "alignment"]
+    ["pathway", "selected_indicators", "custom_indicators", "custom_kinds", "uncertainty", "estimator", "alignment", "plan"]
       .forEach(k => { if (!isObj(s[k])) s[k] = {}; });
     Object.keys(s.custom_indicators).forEach(k => {
       if (!Array.isArray(s.custom_indicators[k])) s.custom_indicators[k] = [];
@@ -293,8 +294,9 @@
       ${S.demo ? `<div class="demo-note"><b>Example: FieldSense</b>A fictional startup with a complete assessment. Changes stay in this browser.<button class="btn small block" data-action="restart">Start your own assessment</button></div>` : ""}
       <div class="eyebrow">Workflow</div>
       <ol class="nav">${nav}</ol>
-      <div class="sidecard"><div class="progress-head"><b>Assessment progress</b><span>${pct}%</span></div>
-        <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Assessment progress"><div class="progress-fill" style="width:${pct}%"></div></div></div>
+      <div class="sidecard"><div class="progress-head"><b>Form completion</b><span>${pct}%</span></div>
+        <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Form completion"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <p style="margin:.45rem 0 0;font-size:.74rem">How much of the form is filled in, not how strong the evidence is. Evidence readiness is in step 5.</p></div>
       <div class="saved-note">${storageOk ? '<span class="dot"></span>Progress saved in this browser' : "⚠ This browser is not saving progress. Download the JSON save file."}</div>
       <div class="eyebrow">Export</div>
       <div class="sidecard" style="margin-top:0">${exportBody}</div>
@@ -305,7 +307,7 @@
         <button class="btn small block" data-action="intro">📖 Introduction &amp; guide</button>
         <button class="btn small block" data-action="restart">↺ Start a new assessment</button>
       </div>
-      <div class="footer-note">v3.1 · Review cycle v${S.assessment_version}</div>`;
+      <div class="footer-note">v3.2 · Review cycle v${S.assessment_version}</div>`;
     const pill = $("#topbar-step");
     if (pill) pill.textContent = `Step ${S.step} of 5 · ${STEP_META[S.step][0]}`;
   }
@@ -345,7 +347,11 @@
           <p class="lead"><b style="color:var(--ink)">Both questions are required.</b> Your answers classify your impact mechanism and drive the whole assessment. <i>Why this matters:</i> a clear classification now makes your indicators, data, and claims more credible and defensible later.</p>
           <fieldset class="question"><legend>${h(REF.DIAGNOSTIC_MECHANISM.question)}</legend><div class="opts">${radios("mech", "mechanism", mechOpts, S.mechanism)}</div></fieldset>
           ${hybrid}
-          <fieldset class="question" style="margin-bottom:0"><legend>${h(REF.DIAGNOSTIC_ORIENTATION.question)}</legend><div class="opts">${radios("ori", "orientation", oriOpts, S.orientation)}</div></fieldset>
+          <fieldset class="question" style="margin-bottom:0"><legend>${h(REF.DIAGNOSTIC_ORIENTATION.question)}</legend><div class="opts">${radios("ori", "orientation", oriOpts, S.orientation)}</div>
+            <details class="examples"><summary>Examples, and what if both are true?</summary>
+              <div class="ex-grid"><div><b>Environment is the value proposition</b><ul>${REF.ORIENTATION_EXAMPLES.primary.map(x => `<li>${h(x)}</li>`).join("")}</ul></div>
+                <div><b>Primarily commercial, environment secondary</b><ul>${REF.ORIENTATION_EXAMPLES.secondary.map(x => `<li>${h(x)}</li>`).join("")}</ul></div></div>
+              <p>${h(REF.ORIENTATION_EXAMPLES.both)}</p></details></fieldset>
         </div>
         ${live("continue", () => {
           const missing = [];
@@ -677,11 +683,11 @@
         <td><span class="lvl lvl-${h(u.level)}">${h(u.level)}</span></td>
         <td><span class="qual q-${u.quality || "none"}">${h(REF.QUALITY_SHORT[u.quality || ""])}</span></td>
         <td>${(u.baseline || "").trim() || SCORING.COMPARATIVE.test(u.claim || "") ? yes((u.baseline || "").trim()) : `<span class="na" title="The claim does not compare anything">not needed</span>`}</td><td>${yes((u.sources || "").trim())}</td>
-        <td>${w ? `<span class="gap-n">${w} gap${w > 1 ? "s" : ""}</span>` : `<span class="yes">none</span>`}</td></tr>`;
+        <td>${w ? `<span class="gap-n">${w} issue${w > 1 ? "s" : ""}</span>` : SCORING.claimWritten(u) ? `<span class="na" title="No issue found by the automated checks">none found</span>` : `<span class="no">not checked</span>`}</td></tr>`;
     }).join("");
     return `<div class="panel claim-overview"><h2>Claims and evidence at a glance</h2>
-      <p class="caption" style="margin:.1rem 0 .7rem">Where a claim says more than its evidence supports, it shows here as a gap. The confidence level says where a number comes from; quality says how far it can be trusted. Both are needed.</p>
-      <div class="table-scroll"><table class="claims"><thead><tr><th>Indicator and claim</th><th>Level</th><th>Quality</th><th>Baseline</th><th>Sources</th><th>Gaps</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+      <p class="caption" style="margin:.1rem 0 .7rem">Where a claim says more than its evidence supports, it shows here as an issue. The confidence level says where a number comes from; quality says how far it can be trusted. The checks look for missing baselines, sources, quality ratings and boundaries; wording checks are simple text patterns, so read them as prompts. “None found” means none of these checks fired, not that the claim is proven.</p>
+      <div class="table-scroll"><table class="claims"><thead><tr><th>Indicator and claim</th><th>Level</th><th>Quality</th><th>Baseline</th><th>Sources</th><th>Issues</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   }
 
   function step4() {
@@ -722,7 +728,7 @@
         ${live(`gaps-${id}`, () => {
           const g = SCORING.claimGaps(name, S.uncertainty[name], S.selected_indicators[name], S.pathway);
           return g.length ? `<div class="gap-list">${g.map(x => alert(x.sev, h(x.msg))).join("")}</div>`
-            : alert("ok", "Claim and evidence are consistent.");
+            : alert("info", "No issues detected by these automated checks. They cannot tell whether the figure itself is right.");
         })}
       </div>`;
     });
@@ -739,7 +745,7 @@
           ['<span class="dot-i" style="background:#2E7D52"></span>Measured', String(c.Measured)],
           ['<span class="dot-i" style="background:#B8860B"></span>Modelled', String(c.Modelled)],
           ['<span class="dot-i" style="background:#7C5296"></span>Projected', String(c.Projected)],
-          ["Claim–evidence gaps", String(gw)],
+          ["Claim–evidence issues", String(gw)],
         ]), "⚖️") + card("Why this matters", "<p>A number can be measured and still weak: a survey of a few customers is measured, but low quality. Showing both, and what each claim is compared with, is what makes the report trustworthy.</p>", "❝", true);
       })}</aside></div>` +
       tip("A modelled or projected claim is fine. An unlabelled one, or one worded as fact, is not.");
@@ -747,28 +753,58 @@
 
   // ============================================================= step 5 ==
 
+  // Evidence readiness: plain counts, kept apart from form completion and
+  // never combined into a score.
+  function readiness() {
+    const unc = Object.entries(S.uncertainty);
+    const kind = n => REF.indicatorKind(n, S.selected_indicators[n]);
+    const al = SCORING.alignment(S);
+    return {
+      measuredOutcome: unc.filter(([n, u]) => u.level === "Measured" && kind(n) === "outcome").length,
+      highQuality: unc.filter(([, u]) => u.quality === "high").length,
+      claims: unc.length,
+      verified: al.verified, assumptions: al.assumptions.length,
+      issues: SCORING.allClaimGaps(S.selected_indicators, S.uncertainty, S.pathway).filter(g => g.sev === "warning").length,
+    };
+  }
+
   const basedOn = trace => trace.length
     ? `<dt>Based on</dt><dd><ul class="trace">${trace.map(t => `<li>${h(t)}</li>`).join("")}</ul></dd>` : "";
 
-  function recCard(a) {
+  const recWhy = a => `<details class="rec-why"><summary>Why this, and why now</summary><dl>
+      <dt>Detected condition</dt><dd>${h(a.condition)}</dd>
+      <dt>Why it matters</dt><dd>${h(a.implication)}</dd>
+      <dt>Why now (${h(S.stage)})</dt><dd>${h(a.why_now)}</dd>
+      ${basedOn(a.trace)}</dl></details>`;
+
+  function recCard(a, withPlan) {
+    const p = S.plan[a.id] || {};
+    const pa = k => `data-f="plan" data-id="${h(a.id)}" data-k="${k}"`;
+    const pid = "plan-" + slug(a.id);
+    const plan = withPlan ? `<div class="plan-row">
+        <div class="field"><label for="${pid}-o">Owner</label><input type="text" id="${pid}-o" ${pa("owner")} value="${h(p.owner || "")}" placeholder="Who does it"></div>
+        <div class="field"><label for="${pid}-d">Deadline</label><input type="date" id="${pid}-d" ${pa("due")} value="${h(p.due || "")}"></div>
+        <div class="field"><label for="${pid}-e">Done when… / evidence of completion</label><input type="text" id="${pid}-e" ${pa("done_evidence")} value="${h(p.done_evidence || "")}" placeholder="e.g. interview notes from 5 pilot farms"></div>
+      </div>` : "";
     return `<li class="rec p${a.priority}${a.type === "strength" ? " strength" : ""}">
       <div class="rec-head"><span class="prio">${a.type === "strength" ? "Strength" : h(SCORING.PRIORITY_LABEL[a.priority]) + " priority"}</span><b>${h(a.title)}</b><span class="rule-id" title="Decision rule">${h(a.id.split(".")[0])}</span></div>
-      <dl><dt>Detected condition</dt><dd>${h(a.condition)}</dd>
-        <dt>Recommended action</dt><dd><b>${h(a.action)}</b></dd>
-        <dt>Why it matters</dt><dd>${h(a.implication)}</dd>
-        <dt>Why now (${h(S.stage)})</dt><dd>${h(a.why_now)}</dd>
-        ${basedOn(a.trace)}</dl></li>`;
+      <p class="rec-action">${h(a.action)}</p>${plan}${recWhy(a)}</li>`;
   }
 
+  // The action plan: the three highest-priority recommendations, each with
+  // an owner, deadline and evidence of completion; the rest are expandable.
   function nextStepsHTML() {
     ensurePathway();
     const ns = SCORING.nextSteps(S);
-    const actions = ns.actions.length
-      ? `<ol class="rec-list">${ns.actions.map(recCard).join("")}</ol>` +
-        (ns.more ? `<p class="caption">${ns.more} lower-priority recommendation(s) not shown. Resolve the ones above first.</p>` : "")
-      : alert("ok", "No open gaps found. Keep the assessment current at your next review milestone.");
+    const all = ns.actions.concat(ns.hidden || []);
+    const top = all.slice(0, SCORING.PLAN_SIZE), rest = all.slice(SCORING.PLAN_SIZE);
+    const actions = top.length
+      ? `<ol class="rec-list">${top.map(a => recCard(a, true)).join("")}</ol>` +
+        (rest.length ? expander("more-recs", `More recommendations <span class="count">${rest.length}</span>`,
+          `<ol class="rec-list">${rest.map(a => recCard(a, false)).join("")}</ol>`, false) : "")
+      : alert("ok", "No open gaps found by the rules. Keep the assessment current at your next review milestone.");
     const strengths = ns.strengths.length
-      ? `<h3 class="sub-h">What you can already show</h3><ol class="rec-list">${ns.strengths.map(recCard).join("")}</ol>` : "";
+      ? `<h3 class="sub-h">What you can already show</h3><ol class="rec-list">${ns.strengths.map(a => recCard(a, false)).join("")}</ol>` : "";
     const consider = ns.consider.length
       ? `<div class="consider"><h3>Points to consider</h3><p class="caption" style="margin:0 0 .5rem">Questions worth a thought. Ignore any that do not apply.</p>
           <ul>${ns.consider.map(c => `<li><b>${h(c.title)}</b> ${h(c.text)}<span class="why-shown">${h(c.id)} · shown because: ${h(c.trace.join("; "))}</span></li>`).join("")}</ul></div>` : "";
@@ -790,8 +826,9 @@
   function alignmentHTML() {
     ensurePathway();
     const al = SCORING.alignment(S);
-    const VERDICT = { aligned: ["ok", "Aligned"], partly: ["info", "Partly aligned"], independent: ["warning", "Not linked"], unclear: ["warning", "Unclear"] };
-    const [sev, vlabel] = VERDICT[al.verdict];
+    const fully = al.assumptions.length && al.verified === al.assumptions.length;
+    const sev = { aligned: fully ? "ok" : "info", partly: "info", independent: "warning", unclear: "warning" }[al.verdict];
+    const vlabel = al.verdict_label;
     const items = al.assumptions.map(a => {
       const id = "al-" + a.key;
       const attrs = k => `data-f="align" data-key="${a.key}" data-k="${k}"`;
@@ -826,9 +863,9 @@
             <div class="field"><label for="review_notes">Notes for the next review <span class="hint">(optional)</span></label><input type="text" id="review_notes" data-f="review_notes" value="${h(S.review_notes)}"></div>
           </div></div>
         ${alignmentHTML()}
-        <h2 style="font-size:1.1rem;margin:1.4rem 0 .3rem">Recommendations</h2>
-        <p class="caption" style="margin:0 0 .7rem">Each one explains the evidence gap, what it means, the action, and why it matters at your current stage (${h(S.stage)}). Highest priority first. They also appear in the report.</p>
-        ${live("next", () => nextStepsHTML())}
+        <h2 style="font-size:1.1rem;margin:1.4rem 0 .3rem">Your action plan</h2>
+        <p class="caption" style="margin:0 0 .7rem">The three highest-priority actions for your stage (${h(S.stage)}). Give each an owner, a deadline and what will count as done. Open “Why this, and why now” to see the answers each one follows from. The plan is in the report too.</p>
+        ${nextStepsHTML()}
         <h2 style="font-size:1.1rem;margin:1.4rem 0 .7rem">Integrity checks</h2>
         ${checksHTML}
         <h2 style="font-size:1.1rem;margin:1.4rem 0 .7rem">Export</h2>
@@ -854,9 +891,17 @@
           ["Startup", S.startup_name || "Not set"],
           ["Classification", classification().label],
           ["Core indicators", String(b[SCORING.BUCKET_CORE].length)],
-          ["Warnings", String(checks.filter(([s]) => s === "warning").length)],
+          ["Automated warnings", String(checks.filter(([s]) => s === "warning").length)],
           ["Next review", S.next_review_milestone || "Not set"],
-        ]), "📋") + card("Review cycles", `<p>You are on review cycle <b>v${S.assessment_version}</b>. Loading the exported JSON later starts cycle v${S.assessment_version + 1}. The framework treats this as a living document.</p>`, "🔁", true);
+        ]), "📋") + (() => {
+          const r = readiness();
+          return card("Evidence readiness", kv([
+            ["Measured real-world outcomes", String(r.measuredOutcome)],
+            ["Claims with high-quality evidence", `${r.highQuality} of ${r.claims}`],
+            ["Commercial assumptions verified", `${r.verified} of ${r.assumptions}`],
+            ["Claim–evidence issues", String(r.issues)],
+          ]) + `<p style="margin:.5rem 0 0;font-size:.78rem">Counts, not a score. Zero automated warnings does not mean the evidence is strong.</p>`, "🔎");
+        })() + card("Review cycles", `<p>You are on review cycle <b>v${S.assessment_version}</b>. Loading the exported JSON later starts cycle v${S.assessment_version + 1}. The framework treats this as a living document.</p>`, "🔁", true);
       })}</aside></div>` +
       tip("Warnings are guidance, not blockers, but each one you resolve makes the report harder to challenge.", "Before you export");
   }
@@ -1008,6 +1053,11 @@
         return el.type === "radio";
       }
       case "est": S.estimator[el.dataset.src] = val; return false;
+      case "plan": {
+        const m = S.plan[el.dataset.id] = S.plan[el.dataset.id] || {};
+        m[el.dataset.k] = val;
+        return false;
+      }
       case "align": {
         const m = S.alignment[el.dataset.key] = S.alignment[el.dataset.key] || {};
         m[el.dataset.k] = val;

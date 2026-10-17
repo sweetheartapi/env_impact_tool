@@ -1,6 +1,6 @@
 **Live app (GitHub Pages):** https://sweetheartapi.github.io/env_impact_tool/
 
-# Startup Environmental Impact Assessment Tool (v3.1)
+# Startup Environmental Impact Assessment Tool (v3.2)
 
 ## v3.1: customer profile and next steps (feedback from SIC, Oct 2026)
 
@@ -90,11 +90,31 @@ Central Bohemian Innovation Centre (SIC):
 - **Calculation boundaries.** Each claim in step 4 records what the figure
   includes and leaves out (period, sites or customers, life-cycle stages);
   measured or modelled claims without one get a note.
+- **Proportional reassurance (review round 2).** The alignment headline
+  says "Potential alignment: n of m assumptions verified" until every
+  critical assumption is validated; "saves them money" is split into savings
+  on the same resource (counts towards alignment) and savings in labour or
+  time (does not). The sidebar shows "Form completion", explicitly not
+  evidence; step 5 adds "Evidence readiness" counts (measured outcomes,
+  high-quality claims, assumptions verified, issues), never a score.
+  "No gaps" became "No issues detected by these automated checks".
+- **Stricter checks.** Blank claims are "not checked" rather than clean;
+  the evidence-summary strength (S01) needs a written claim, boundary and a
+  valid pathway link; the wording prompt checks each comparative sentence,
+  and "can"/"will" no longer count as hedges; missing quality or boundary
+  is a warning; pathway links to deleted steps are reported.
+- **Action plan.** Step 5 leads with the three highest-priority actions,
+  each with owner, deadline and "done when / evidence"; the reasoning is
+  expandable and the rest sit under "More recommendations". Duplicate
+  weak-link recommendations are merged. The report opens section 7 with
+  the action plan table.
+- **Classification examples.** The orientation question has contrasting
+  examples and a note for products where both answers seem true.
 - Save files gain optional keys: `customer_types`, `revenue_models`,
   `customer_profile` (the buyer), `customer_user`, `behaviour_actor`,
   `value_drivers`, `customer_value`, `custom_kinds`, `change` on each pathway
   stage, `kind` on each selected indicator, and `quality`, `baseline`,
-  `sources`, `boundary` on each claim, and `alignment`.
+  `sources`, `boundary` on each claim, `alignment` and `plan`.
   Older files load without them.
 
 
@@ -107,8 +127,12 @@ Streamlit version's reload lag, dark-mode rendering glitches and cold starts.
 - **Same framework, same rules.** `docs/js/framework.js` is a direct port of
   `framework/reference.py` and `framework/scoring.py`; `docs/js/report.js`
   ports `framework/report.py` (Markdown, HTML, Word and JSON).
-- **Save files are compatible** in both directions with the Streamlit
-  version (same `startup-env-impact-assessment` JSON format).
+- **Save files:** the web version reads Streamlit save files (same
+  `startup-env-impact-assessment` format). The reverse is no longer true:
+  the Streamlit version does not know the fields added in v3.1 (customer,
+  revenue model, alignment, action plan, evidence quality, boundaries…) and
+  drops them on export. The Streamlit version is retired; use the web
+  version.
 - **Progress saves automatically** in the browser (localStorage), so a reload
   or closed tab loses nothing. The JSON save file is still the way to move an
   assessment between devices or keep it long-term.
@@ -129,7 +153,12 @@ python -m http.server 8000 --directory docs
 
 then open http://localhost:8000. Pushing to `main` redeploys the site.
 
-The original Streamlit app (below) is unchanged and still runs locally.
+Tests for the browser rules: `node --test tests/web/*.test.mjs` (no
+dependencies; also run by GitHub Actions on every push). The Python tests in
+`tests/` cover only the retired Streamlit implementation.
+
+The original Streamlit app (below) is retired: unchanged, not maintained,
+and it does not have any of the v3.1 features.
 
 ---
 
