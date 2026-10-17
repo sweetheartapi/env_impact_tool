@@ -8,7 +8,7 @@ Changes to the web version, from the expert consultation with the
 Central Bohemian Innovation Centre (SIC):
 
 - **Customer profile in step 1.** Who buys the product (B2B, B2C, B2G or a
-  mix), the ideal customer profile, why they would pay, and how that links
+  mix), the ideal customer profile, why they would buy the product, and how that links
   to the environmental benefit. Optional, so existing save files still load.
 - **Next steps and points to consider.** Step 5 and every report format now
   end with concrete next steps drawn from the gaps in the assessment (weakest

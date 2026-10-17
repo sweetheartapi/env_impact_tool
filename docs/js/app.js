@@ -352,7 +352,7 @@
       </aside></div>`;
   }
 
-  // The customer panel: who pays, who they are, and why they would pay.
+  // The customer panel: who buys, who they are, and why they buy.
   // An impact claim only matters if someone buys and uses the product, and
   // the next steps in the report depend on who that is.
   function customerPanel() {
@@ -363,12 +363,12 @@
     const mixed = S.customer_types.length > 1
       ? `<p class="caption" style="margin:.5rem 0 0">Mixed model: <b>${h(S.customer_types.join(" + "))}</b>. The report will ask which segment you prove the impact with first.</p>` : "";
     return `<div class="panel"><h2>Your customer</h2>
-      <p class="lead">Who pays for your product, and why? The environmental benefit only happens if someone buys and uses it, so the recommended next steps in your report depend on these answers.</p>
+      <p class="lead">Who buys your product or service, and why? The environmental benefit only happens if someone buys and uses it, so the recommended next steps in your report depend on these answers.</p>
       <fieldset class="question"><legend>Who are your customers? <span class="hint">(select all that apply)</span></legend><div class="opts inline">${types}</div>${mixed}</fieldset>
       <div class="field"><label for="customer_profile">Ideal customer profile</label>
         <textarea id="customer_profile" data-f="customer_profile" rows="2" placeholder="e.g. Mid-size vegetable farms (50–500 ha) in dry regions that irrigate from metered sources">${h(S.customer_profile)}</textarea>
         <span class="hint">Who exactly buys it? If someone else has to use it or change their behaviour (an employee, an end user), say so.</span></div>
-      <fieldset class="question"><legend>Why would they pay for it? <span class="hint">(select all that apply)</span></legend><div class="opts">${drivers}</div></fieldset>
+      <fieldset class="question"><legend>What makes customers want to buy your product or service? <span class="hint">(select all that apply)</span></legend><div class="opts">${drivers}</div></fieldset>
       <div class="field" style="margin-bottom:0"><label for="customer_value">In one sentence: what does the customer get, and how is it linked to the environmental benefit? <span class="hint">(optional)</span></label>
         <input type="text" id="customer_value" data-f="customer_value" value="${h(S.customer_value)}" placeholder="e.g. Lower water bills: every m³ the farm saves is also money saved."></div>
     </div>`;

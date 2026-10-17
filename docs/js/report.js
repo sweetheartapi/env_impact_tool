@@ -81,7 +81,7 @@ function customerLines(cu) {
   return [
     ["Customer type", cu.type_label],
     ["Ideal customer profile", cu.profile],
-    ["Why they pay", cu.drivers.join("; ")],
+    ["Why customers buy it", cu.drivers.join("; ")],
     ["Customer value & environmental link", cu.value],
   ].filter(([, v]) => v);
 }
