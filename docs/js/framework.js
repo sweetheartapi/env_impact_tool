@@ -298,6 +298,18 @@ REF.CONFIDENCE_LEVELS = {
   Projected: "Relies on adoption scenarios and theory-of-change reasoning about future or indirect impacts. Legitimate, but belongs in the impact pathway narrative, not in the evidence base.",
 };
 
+// Evidence quality: a second dimension, separate from the confidence level.
+// The level says where a number comes from (measured, modelled, projected);
+// quality says how far it can be trusted. A self-reported survey of 22
+// farmers is "measured" data of low quality. (Added Oct 2026.)
+REF.EVIDENCE_QUALITY = [
+  ["", "Not assessed yet"],
+  ["low", "Low: anecdotal, self-reported, or a very small sample"],
+  ["medium", "Medium: real data, but a limited sample, short period or no comparison group"],
+  ["high", "High: systematic, representative data that someone else could check"],
+];
+REF.QUALITY_SHORT = { "": "Not assessed", low: "Low", medium: "Medium", high: "High" };
+
 // ---------------------------------------------------------------------------
 // Quick Scope 1 & 2 estimator: generic, screening-level emission factors
 // (order of magnitude consistent with DEFRA / EEA published factors).
@@ -384,9 +396,58 @@ SCORING.groupByBucket = function (selected) {
   return out;
 };
 
+// ---------------------------------------------------------------------------
+// Claim-evidence gaps: where what a claim says outruns the evidence behind
+// it. Returns [{sev: "warning"|"info", msg}] for one labelled indicator.
+// pathway (optional) lets the claim be checked against the step it evidences.
+// ---------------------------------------------------------------------------
+
+SCORING.HEDGE = /\b(could|can|may|might|expect(ed|s)?|project(ed|ion)?|potential(ly)?|up to|aim(s|ing)?|target(s|ed)?|estimat(e|ed|es)|would|will|scenario|forecast)\b/i;
+SCORING.COMPARATIVE = /(\d+(\.\d+)?\s?%|\breduc|\bsav(e|es|ed|ing)\b|\bless\b|\blower\b|\bfewer\b|\bavoid|\bcut(s)?\b|\bdecreas|\bimprov)/i;
+
+SCORING.pathwayStage = function (pathway, link) {
+  if (!link || !pathway) return null;
+  const [track, stage] = link.split(" → ");
+  return (pathway[track] || []).find(s => s.stage === stage) || null;
+};
+
+SCORING.claimGaps = function (name, u, entry, pathway) {
+  const gaps = [];
+  if (!u) return gaps;
+  const claim = (u.claim || "").trim();
+  const q = u.quality || "";
+  const level = u.level;
+  const add = (sev, msg) => gaps.push({ sev, msg });
+
+  if (claim && level === "Projected" && !SCORING.HEDGE.test(claim))
+    add("warning", "The claim reads as if it is already happening, but it is labelled Projected. Word it as a possibility, e.g. “could reduce … by up to …”.");
+  if (claim && level === "Modelled" && !/\b(estimat|model|calculat|approximately|about|around|roughly|~)/i.test(claim))
+    add("info", "The claim is modelled; say so in the wording (e.g. “an estimated …”).");
+  if (claim && SCORING.COMPARATIVE.test(claim) && !(u.baseline || "").trim())
+    add("warning", "The claim compares (less, lower, saves, a %), but no baseline is stated. Compared with what?");
+  if (level === "Measured" && q === "low")
+    add("warning", "Labelled Measured, but the evidence quality is low (e.g. self-reported or a tiny sample). Report both, so nobody reads it as validated.");
+  if ((level === "Measured" || level === "Modelled") && !(u.sources || "").trim())
+    add("warning", `A ${level.toLowerCase()} claim needs its data source named.`);
+  if (!q)
+    add("info", "Evidence quality is not assessed yet.");
+  const st = SCORING.pathwayStage(pathway, entry && entry.pathway_link);
+  if (st && st.evidence === "Weak (assumption only)" && (level === "Measured" || q === "high"))
+    add("info", `This indicator evidences “${st.stage}”, which step 2 still rates as weak. If this evidence now supports it, update the rating in step 2.`);
+  return gaps;
+};
+
+SCORING.allClaimGaps = function (selected, uncertainty, pathway) {
+  const out = [];
+  Object.entries(uncertainty || {}).forEach(([n, u]) => {
+    SCORING.claimGaps(n, u, (selected || {})[n], pathway).forEach(g => out.push(Object.assign({ name: n }, g)));
+  });
+  return out;
+};
+
 // Operationalizes the anti-greenwashing findings. Returns [severity, message]
 // pairs; severity in {"warning", "info", "ok"}.
-SCORING.integrityChecks = function (selected, uncertainty) {
+SCORING.integrityChecks = function (selected, uncertainty, pathway) {
   const checks = [];
   const core = SCORING.groupByBucket(selected)[SCORING.BUCKET_CORE];
 
@@ -445,6 +506,15 @@ SCORING.integrityChecks = function (selected, uncertainty) {
       ". Linking each indicator to the step of the causal chain it evidences strengthens the materiality of the indicator set."]);
   } else if (core.length) {
     checks.push(["ok", "All core indicators are linked to an impact-pathway stage."]);
+  }
+
+  // 4b. Claim-evidence gaps (wording, baselines, sources, quality)
+  const gw = SCORING.allClaimGaps(selected, uncertainty, pathway).filter(g => g.sev === "warning");
+  if (gw.length) {
+    const names = [...new Set(gw.map(g => g.name))];
+    checks.push(["warning", `${gw.length} claim–evidence gap(s) in: ${names.join("; ")}. See the claim–evidence overview in section 4.`]);
+  } else if (Object.keys(uncertainty || {}).length) {
+    checks.push(["ok", "No claim–evidence gaps: wording, baselines and sources match the evidence labels."]);
   }
 
   // 5. Missing assumption documentation on non-measured claims
@@ -579,6 +649,13 @@ SCORING.nextSteps = function (state) {
     act("Measure real impact, not only the technology",
       "Your core indicators describe the product or the company. Add one that shows customers use it and something changes as a result, " +
       "for example irrigation water saved per participating farm instead of the number of sensors manufactured (step 3, indicators marked green).");
+  }
+  const gapW = SCORING.allClaimGaps(selected, unc, pathway).filter(g => g.sev === "warning");
+  if (gapW.length) {
+    const first = gapW[0];
+    act("Close the claim–evidence gaps",
+      `${gapW.length} of your claims say more than the evidence supports. Start with “${first.name}”: ${first.msg} ` +
+      "Closing these before you present is what keeps the report from being read as greenwashing.");
   }
   const asp = buckets[SCORING.BUCKET_ASPIRATIONAL].map(([n]) => n);
   if (asp.length) {

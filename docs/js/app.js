@@ -51,7 +51,7 @@
     1: ["Profile & classify", "Understand your startup"],
     2: ["Impact pathway", "Map your impact"],
     3: ["Select indicators", "Choose what to measure"],
-    4: ["Label uncertainty", "Assess confidence"],
+    4: ["Claims & evidence", "Check claims against evidence"],
     5: ["Report & export", "Review and export"],
   };
 
@@ -653,9 +653,31 @@
       S.uncertainty[n] = {
         level: REF.CONFIDENCE_LEVELS[u.level] ? u.level : "Modelled",
         claim: u.claim || "", assumptions: u.assumptions || "", conditions: u.conditions || "",
+        quality: REF.EVIDENCE_QUALITY.some(([k]) => k === u.quality) ? u.quality : "",
+        baseline: u.baseline || "", sources: u.sources || "",
       };
     });
     return toLabel;
+  }
+
+  // One row per claim: how it is labelled, and how many gaps it has.
+  function claimOverviewHTML() {
+    const names = Object.keys(S.uncertainty);
+    if (!names.length) return "";
+    const yes = v => v ? `<span class="yes">✓</span>` : `<span class="no">missing</span>`;
+    const rows = names.map(n => {
+      const u = S.uncertainty[n];
+      const gaps = SCORING.claimGaps(n, u, S.selected_indicators[n], S.pathway);
+      const w = gaps.filter(g => g.sev === "warning").length;
+      return `<tr><td><b>${h(n)}</b>${u.claim ? `<div class="claim-q">“${h(u.claim)}”</div>` : `<div class="claim-q none">no public claim written</div>`}</td>
+        <td><span class="lvl lvl-${h(u.level)}">${h(u.level)}</span></td>
+        <td><span class="qual q-${u.quality || "none"}">${h(REF.QUALITY_SHORT[u.quality || ""])}</span></td>
+        <td>${(u.baseline || "").trim() || SCORING.COMPARATIVE.test(u.claim || "") ? yes((u.baseline || "").trim()) : `<span class="na" title="The claim does not compare anything">not needed</span>`}</td><td>${yes((u.sources || "").trim())}</td>
+        <td>${w ? `<span class="gap-n">${w} gap${w > 1 ? "s" : ""}</span>` : `<span class="yes">none</span>`}</td></tr>`;
+    }).join("");
+    return `<div class="panel claim-overview"><h2>Claims and evidence at a glance</h2>
+      <p class="caption" style="margin:.1rem 0 .7rem">Where a claim says more than its evidence supports, it shows here as a gap. The confidence level says where a number comes from; quality says how far it can be trusted. Both are needed.</p>
+      <div class="table-scroll"><table class="claims"><thead><tr><th>Indicator and claim</th><th>Level</th><th>Quality</th><th>Baseline</th><th>Sources</th><th>Gaps</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   }
 
   function step4() {
@@ -669,31 +691,53 @@
       const a = k => `data-f="unc" data-name="${h(name)}" data-k="${k}"`;
       const radios = Object.keys(REF.CONFIDENCE_LEVELS).map((lv, i) =>
         `<label class="choice" for="${id}-l${i}"><input type="radio" id="${id}-l${i}" name="${id}-lvl" value="${lv}" ${a("level")}${u.level === lv ? " checked" : ""}><span>${lv}</span></label>`).join("");
+      const st = SCORING.pathwayStage(S.pathway, e.pathway_link);
+      const link = st
+        ? `<div class="link-box"><b>Relies on pathway step:</b> ${h(e.pathway_link)}<br>
+            <span class="caption">Assumption there: ${st.assumption ? `“${h(st.assumption)}”` : "<i>none stated in step 2</i>"} · evidence: ${h(st.evidence || "Not rated")}</span></div>`
+        : `<div class="link-box none">Not linked to a pathway step yet. <button class="btn small" data-goto="3">Link it in step 3 → Indicator details</button></div>`;
       body += `<div class="panel"><div class="unc-head"><div class="name">${h(name)}</div>
           <div class="sub">${h(e.category)} · ${h(SCORING.bucket(e.feasibility, e.relevance))}${e.current_value ? ` · current value: ${h(e.current_value)} ${h(e.unit || "")}` : ""}</div></div>
         <div class="field"><label for="${id}-c">The impact claim as you would state it publicly <span class="hint">(optional)</span></label>
           <input type="text" id="${id}-c" ${a("claim")} value="${h(u.claim)}" placeholder="e.g. “Our users reduce pesticide application by 14% per hectare.”"></div>
-        <fieldset class="question"><legend>Evidential confidence</legend><div class="opts inline">${radios}</div></fieldset>
-        <p class="conf-desc">${h(REF.CONFIDENCE_LEVELS[u.level])}</p>
+        <div class="two-dim">
+          <fieldset class="question"><legend>1 · Evidential confidence: where does the number come from?</legend><div class="opts inline">${radios}</div>
+            <p class="conf-desc" style="margin:.6rem 0 0">${h(REF.CONFIDENCE_LEVELS[u.level])}</p></fieldset>
+          <div class="question"><div class="field" style="margin:0"><label for="${id}-q" style="font-weight:700;font-size:.96rem">2 · Evidence quality: how far can it be trusted?</label>
+            ${selectHTML(`${id}-q`, a("quality"), REF.EVIDENCE_QUALITY, u.quality || "")}</div></div>
+        </div>
         ${u.level === "Projected" ? alert("warning", "<b>Projected:</b> report this in the impact-pathway narrative, clearly separated from evidence.") : ""}
-        <div class="field"><label for="${id}-a">Assumptions and data sources driving this estimate</label><textarea id="${id}-a" rows="2" ${a("assumptions")}>${h(u.assumptions)}</textarea></div>
-        <div class="field" style="margin:0"><label for="${id}-k">Conditions under which the estimate could be significantly different</label><textarea id="${id}-k" rows="2" ${a("conditions")}>${h(u.conditions)}</textarea></div>
+        ${link}
+        <div class="grid2" style="margin-bottom:.9rem">
+          <div class="field" style="margin:0"><label for="${id}-b">Baseline: compared with what?</label><input type="text" id="${id}-b" ${a("baseline")} value="${h(u.baseline)}" placeholder="e.g. Same farms' metered use in the 2025 season"></div>
+          <div class="field" style="margin:0"><label for="${id}-s">Evidence and data sources</label><input type="text" id="${id}-s" ${a("sources")} value="${h(u.sources)}" placeholder="e.g. Pilot survey, n = 22; app usage logs"></div>
+        </div>
+        <div class="field"><label for="${id}-a">Assumptions behind the number</label><textarea id="${id}-a" rows="2" ${a("assumptions")}>${h(u.assumptions)}</textarea></div>
+        <div class="field"><label for="${id}-k">Conditions under which the estimate could be significantly different</label><textarea id="${id}-k" rows="2" ${a("conditions")}>${h(u.conditions)}</textarea></div>
+        ${live(`gaps-${id}`, () => {
+          const g = SCORING.claimGaps(name, S.uncertainty[name], S.selected_indicators[name], S.pathway);
+          return g.length ? `<div class="gap-list">${g.map(x => alert(x.sev, h(x.msg))).join("")}</div>`
+            : alert("ok", "Claim and evidence are consistent.");
+        })}
       </div>`;
     });
 
-    return hero(4, "Label your uncertainty",
-      "Every impact claim gets an evidential confidence level (measured, modelled, or projected) plus the assumptions behind it. All three are legitimate; conflating them is not.") +
+    return hero(4, "Check your claims against the evidence",
+      "Label each claim by where its number comes from (measured, modelled or projected) and by how far the evidence can be trusted, then tie it to its baseline, sources and assumptions. Gaps between what you claim and what you can show become visible.") +
+      live("claim-overview", claimOverviewHTML) +
       `<div class="cols"><div>${body}${navButtons(3, 5)}</div>
       <aside class="aside">${live("aside", () => {
         const c = { Measured: 0, Modelled: 0, Projected: 0 };
         Object.values(S.uncertainty).forEach(u => { if (u.level in c) c[u.level]++; });
+        const gw = SCORING.allClaimGaps(S.selected_indicators, S.uncertainty, S.pathway).filter(g => g.sev === "warning").length;
         return card("Evidence mix", kv([
           ['<span class="dot-i" style="background:#2E7D52"></span>Measured', String(c.Measured)],
           ['<span class="dot-i" style="background:#B8860B"></span>Modelled', String(c.Modelled)],
           ['<span class="dot-i" style="background:#7C5296"></span>Projected', String(c.Projected)],
-        ]), "⚖️") + card("Why this matters", "<p>Only measured claims count as evidence. Projected claims belong in the narrative. Labelling the difference is what makes the report trustworthy.</p>", "❝", true);
+          ["Claim–evidence gaps", String(gw)],
+        ]), "⚖️") + card("Why this matters", "<p>A number can be measured and still weak: a survey of a few customers is measured, but low quality. Showing both, and what each claim is compared with, is what makes the report trustworthy.</p>", "❝", true);
       })}</aside></div>` +
-      tip("A modelled or projected claim is fine. An unlabelled one is not. State the assumptions and move on.");
+      tip("A modelled or projected claim is fine. An unlabelled one, or one worded as fact, is not.");
   }
 
   // ============================================================= step 5 ==
@@ -712,7 +756,7 @@
 
   function step5() {
     ensurePathway();
-    const checks = SCORING.integrityChecks(S.selected_indicators, S.uncertainty);
+    const checks = SCORING.integrityChecks(S.selected_indicators, S.uncertainty, S.pathway);
     const checksHTML = checks.map(([sev, msg]) => alert(sev, h(msg))).join("");
 
     return hero(5, "Review, report & export",

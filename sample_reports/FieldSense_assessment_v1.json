@@ -97,19 +97,28 @@
       "Adoption rate of the solution": {
         "level": "Measured",
         "claim": "62 enrolled farms covering approximately 410 hectares as of this month.",
-        "assumptions": "CRM enrollment and onboarding records.",
+        "quality": "high",
+        "baseline": "",
+        "sources": "CRM enrollment and onboarding records",
+        "assumptions": "Counts farms that are enrolled and have sensors installed; enrollment alone does not show that a farm actively uses the recommendations.",
         "conditions": ""
       },
       "Quality / reliability of adoption evidence": {
         "level": "Modelled",
         "claim": "71% of surveyed farmers self-report reduced irrigation frequency.",
-        "assumptions": "Self-reported survey of 22 of 62 enrolled farms; social-desirability bias likely inflates positive responses somewhat.",
+        "quality": "low",
+        "baseline": "Farmers' own recollection of how often they irrigated before using FieldSense",
+        "sources": "Self-reported survey of 22 of 62 enrolled farms",
+        "assumptions": "Social-desirability bias likely inflates positive responses somewhat; irrigating less often does not necessarily mean using less water.",
         "conditions": "Would look different with a larger, randomly sampled survey, or with metered verification instead of self-report."
       },
       "Avoided physical harm per unit of adoption (domain-specific)": {
         "level": "Projected",
         "claim": "We estimate an approximate 18% reduction in water withdrawal per irrigated hectare versus the regional baseline.",
-        "assumptions": "Based on published agronomic studies of comparable sensor-guided irrigation systems elsewhere — not yet based on FieldSense's own metered data.",
+        "quality": "medium",
+        "baseline": "Regional average water withdrawal per irrigated hectare (published statistics)",
+        "sources": "Published agronomic studies of comparable sensor-guided irrigation systems in other regions",
+        "assumptions": "Not yet based on FieldSense's own metered data; assumes pilot farms behave like the farms in the published studies.",
         "conditions": "Actual savings could be considerably lower if farmers under-trust recommendations during high-risk growth stages (e.g. flowering) and over-water as a precaution."
       }
     },

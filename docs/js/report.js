@@ -18,7 +18,7 @@ REPORT.today = () => {
 REPORT.assemble = function (state) {
   const cls = REF.CLASSIFICATION_MATRIX[`${state.mechanism}|${state.orientation}`];
   const buckets = SCORING.groupByBucket(state.selected_indicators);
-  const checks = SCORING.integrityChecks(state.selected_indicators, state.uncertainty);
+  const checks = SCORING.integrityChecks(state.selected_indicators, state.uncertainty, state.pathway);
   const refs = new Set(["weiss1995", "mayne2008", "kellogg2004", "mclaughlin2015",
     "iso2015", "sahili2024", "lilin2025", "roomi2021", "weidema2018"]);
   Object.values(state.selected_indicators).forEach(e => { if (e.citation) refs.add(e.citation); });
@@ -59,6 +59,12 @@ REPORT.assemble = function (state) {
     buckets,
     uncertainty: state.uncertainty,
     integrity_checks: checks,
+    claim_rows: Object.entries(state.uncertainty || {}).map(([n, u]) => {
+      const e = (state.selected_indicators || {})[n] || {};
+      const st = SCORING.pathwayStage(state.pathway, e.pathway_link);
+      return { name: n, u, link: e.pathway_link || "", stage: st,
+        gaps: SCORING.claimGaps(n, u, e, state.pathway) };
+    }),
     next_steps: SCORING.nextSteps(state),
     references,
     stage_note: REF.STAGE_GUIDANCE[state.stage].note,
@@ -94,6 +100,9 @@ function customerLines(cu) {
 
 const kindLabel = (n, e) => (REF.INDICATOR_KINDS[REF.indicatorKind(n, e)] || { label: "not set" }).label;
 const kindReal = (n, e) => !!(REF.INDICATOR_KINDS[REF.indicatorKind(n, e)] || {}).real;
+
+const qualityLabel = q => (REF.EVIDENCE_QUALITY.find(([k]) => k === (q || "")) || ["", "Not assessed yet"])[1];
+const gapCount = row => row.gaps.filter(g => g.sev === "warning").length;
 
 const INDICATOR_FIELDS = [["unit", "Unit"], ["current_value", "Current value"], ["target", "Target"],
   ["frequency", "Measured"], ["data_source", "Data source"], ["pathway_link", "Evidences pathway stage"]];
@@ -165,15 +174,28 @@ REPORT.toMarkdown = function (r) {
   });
   L.push("");
 
-  L.push("## 4. Uncertainty Acknowledgement");
-  if (!Object.keys(r.uncertainty).length) L.push("_No claims labelled yet._");
-  Object.entries(r.uncertainty).forEach(([n, u]) => {
-    L.push(`### ${n}`);
+  L.push("## 4. Claims & Evidence");
+  if (!r.claim_rows.length) L.push("_No claims labelled yet._");
+  else {
+    L.push("| Indicator | Claim | Level | Quality | Baseline | Sources | Gaps |");
+    L.push("| --- | --- | --- | --- | --- | --- | --- |");
+    const cellMd = t => String(t || "").replace(/\|/g, "/").replace(/\n/g, " ");
+    r.claim_rows.forEach(row => L.push(`| ${cellMd(row.name)} | ${cellMd(row.u.claim) || "—"} | ${row.u.level || "—"} | ${REF.QUALITY_SHORT[row.u.quality || ""]} | ${row.u.baseline ? "yes" : SCORING.COMPARATIVE.test(row.u.claim || "") ? "missing" : "not needed"} | ${row.u.sources ? "yes" : "missing"} | ${gapCount(row) || "none"} |`));
+    L.push("");
+  }
+  r.claim_rows.forEach(row => {
+    const u = row.u;
+    L.push(`### ${row.name}`);
     const lvl = u.level || "unlabelled";
     L.push(`- **Evidential confidence:** ${lvl}` + (REF.CONFIDENCE_LEVELS[lvl] ? `. ${REF.CONFIDENCE_LEVELS[lvl]}` : ""));
+    L.push(`- **Evidence quality:** ${qualityLabel(u.quality)}`);
     if (u.claim) L.push(`- **Claim as stated:** ${u.claim}`);
-    L.push(`- **Assumptions & data sources:** ${u.assumptions || "_(not filled in)_"}`);
+    L.push(`- **Baseline:** ${u.baseline || "_(not stated)_"}`);
+    L.push(`- **Evidence and data sources:** ${u.sources || "_(not stated)_"}`);
+    if (row.stage) L.push(`- **Relies on pathway step:** ${row.link}. Assumption: ${row.stage.assumption || "_(none stated)_"} (evidence: ${row.stage.evidence || "Not rated"})`);
+    L.push(`- **Assumptions:** ${u.assumptions || "_(not filled in)_"}`);
     L.push(`- **Conditions under which the estimate could differ significantly:** ${u.conditions || "_(not filled in)_"}`);
+    row.gaps.forEach(g => L.push(`- ${g.sev === "warning" ? "⚠️ **Gap:**" : "ℹ️"} ${g.msg}`));
   });
   L.push("");
 
@@ -228,6 +250,10 @@ ul { padding-left: 1.3rem; } li { margin: .25rem 0; }
 .badge { display: inline-block; padding: .1rem .55rem; border-radius: 1rem; font-size: .8rem;
          font-family: Arial, sans-serif; color: #fff; vertical-align: middle; }
 .b-Measured { background: #2e6b4f; } .b-Modelled { background: #b8860b; } .b-Projected { background: #8a5a9e; }
+.b-q { background: #5a6b62; }
+table.claims { border-collapse: collapse; width: 100%; font-size: .88rem; margin: .5rem 0 1rem; font-family: Arial, sans-serif; }
+table.claims th, table.claims td { border: 1px solid #cfe0d6; padding: .35rem .5rem; text-align: left; vertical-align: top; }
+table.claims th { background: #2e6b4f; color: #fff; }
 .warn { color: #a33; } .ok { color: #2e6b4f; } .info { color: #345d8a; }
 footer { margin-top: 3rem; font-size: .85rem; color: #5a6b62; border-top: 1px solid #cfe0d6; padding-top: .8rem; }
 .diagram svg { width: 100%; height: auto; display: block; margin: .4rem 0 .8rem; }
@@ -299,16 +325,28 @@ REPORT.toHtmlBody = function (r) {
   });
   if (!any) P.push("<p><i>No indicators selected.</i></p>");
 
-  P.push("<h2>4. Uncertainty Acknowledgement</h2>");
-  if (!Object.keys(r.uncertainty).length) P.push("<p><i>No claims labelled yet.</i></p>");
-  Object.entries(r.uncertainty).forEach(([n, u]) => {
+  P.push("<h2>4. Claims &amp; Evidence</h2>");
+  if (!r.claim_rows.length) P.push("<p><i>No claims labelled yet.</i></p>");
+  else {
+    P.push("<table class=\"claims\"><thead><tr><th>Indicator and claim</th><th>Level</th><th>Quality</th><th>Baseline</th><th>Sources</th><th>Gaps</th></tr></thead><tbody>" +
+      r.claim_rows.map(row => `<tr><td><b>${esc(row.name)}</b>${row.u.claim ? `<br><i>“${esc(row.u.claim)}”</i>` : ""}</td>` +
+        `<td>${esc(row.u.level || "—")}</td><td>${esc(REF.QUALITY_SHORT[row.u.quality || ""])}</td>` +
+        `<td>${row.u.baseline ? "✓" : SCORING.COMPARATIVE.test(row.u.claim || "") ? "<span class=\"warn\">missing</span>" : "not needed"}</td><td>${row.u.sources ? "✓" : "<span class=\"warn\">missing</span>"}</td>` +
+        `<td>${gapCount(row) ? `<span class="warn">${gapCount(row)}</span>` : "none"}</td></tr>`).join("") + "</tbody></table>");
+  }
+  r.claim_rows.forEach(row => {
+    const u = row.u;
     const lvl = u.level || "unlabelled";
     const badge = REF.CONFIDENCE_LEVELS[lvl] ? `<span class="badge b-${lvl}">${esc(lvl)}</span>` : esc(lvl);
-    P.push(`<h3>${esc(n)} ${badge}</h3>`);
+    P.push(`<h3>${esc(row.name)} ${badge} <span class="badge b-q">Quality: ${esc(REF.QUALITY_SHORT[u.quality || ""])}</span></h3>`);
     const rows = [];
     if (u.claim) rows.push(`<b>Claim as stated:</b> ${esc(u.claim)}`);
-    rows.push(`<b>Assumptions &amp; data sources:</b> ${esc(u.assumptions || "(not filled in)")}`);
+    rows.push(`<b>Baseline:</b> ${esc(u.baseline || "(not stated)")}`);
+    rows.push(`<b>Evidence and data sources:</b> ${esc(u.sources || "(not stated)")}`);
+    if (row.stage) rows.push(`<b>Relies on pathway step:</b> ${esc(row.link)}. Assumption: ${esc(row.stage.assumption || "(none stated)")} (evidence: ${esc(row.stage.evidence || "Not rated")})`);
+    rows.push(`<b>Assumptions:</b> ${esc(u.assumptions || "(not filled in)")}`);
     rows.push(`<b>Conditions that could change the estimate:</b> ${esc(u.conditions || "(not filled in)")}`);
+    row.gaps.forEach(g => rows.push(`<span class="${g.sev === "warning" ? "warn" : "info"}">${g.sev === "warning" ? "⚠ Gap: " : "ℹ "}${esc(g.msg)}</span>`));
     P.push(li(rows));
   });
 
@@ -364,7 +402,11 @@ REPORT.toDocx = async function (r, extras = {}) {
   if (!D) throw new Error("the Word export library did not load");
   const { Document, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell,
     WidthType, ShadingType, AlignmentType, Footer, PageNumber, TableOfContents,
-    PageBreak, BorderStyle, Packer, ImageRun } = D;
+    PageBreak, BorderStyle, Packer, ImageRun, TableLayoutType } = D;
+  // usable page width in twips (A4/Letter with 1" margins); tables get
+  // explicit column widths, which Word and LibreOffice both respect
+  const TABLE_TW = 9000;
+  const twips = pcts => pcts.map(p => Math.round(TABLE_TW * p / 100));
   const m = r.meta, c = r.classification;
   const children = [];
 
@@ -465,12 +507,12 @@ REPORT.toDocx = async function (r, extras = {}) {
   const borders = { top: cellBorder, bottom: cellBorder, left: cellBorder, right: cellBorder };
   const cell = (text, opts = {}) => new TableCell({
     borders,
-    width: opts.width ? { size: opts.width, type: WidthType.PERCENTAGE } : undefined,
+    width: opts.width ? { size: Math.round(TABLE_TW * opts.width / 100), type: WidthType.DXA } : undefined,
     shading: opts.fill ? { type: ShadingType.CLEAR, color: "auto", fill: opts.fill } : undefined,
     margins: { top: 60, bottom: 60, left: 90, right: 90 },
     children: [new Paragraph({ children: [new TextRun({ text, size: 19, bold: !!opts.bold, color: opts.color })] })],
   });
-  const widths = [27, 15, 14, 7, 7, 30];
+  const widths = [23, 14, 12, 9, 8, 34];
   let anyInd = false;
   SCORING.BUCKET_ORDER.forEach(b => {
     const items = r.buckets[b];
@@ -492,24 +534,52 @@ REPORT.toDocx = async function (r, extras = {}) {
           .map((t, i) => cell(t, { fill, width: widths[i], color: i === 2 && kindReal(n, e) ? DOCX_C.green : undefined, bold: i === 2 && kindReal(n, e) })),
       }));
     });
-    children.push(new Table({ rows, width: { size: 100, type: WidthType.PERCENTAGE } }));
+    children.push(new Table({ rows, width: { size: TABLE_TW, type: WidthType.DXA }, columnWidths: twips(widths), layout: TableLayoutType.FIXED }));
     children.push(new Paragraph(""));
   });
   if (!anyInd) children.push(new Paragraph("No indicators selected."));
 
   // Module 4
-  children.push(h("4. Uncertainty Acknowledgement", HeadingLevel.HEADING_1));
-  if (!Object.keys(r.uncertainty).length) children.push(new Paragraph("No claims labelled yet."));
+  children.push(h("4. Claims & Evidence", HeadingLevel.HEADING_1));
   const confColor = { Measured: DOCX_C.green, Modelled: DOCX_C.gold, Projected: DOCX_C.purple };
-  Object.entries(r.uncertainty).forEach(([n, u]) => {
+  if (!r.claim_rows.length) children.push(new Paragraph("No claims labelled yet."));
+  else {
+    const cw = [34, 13, 12, 12, 12, 17];
+    const trows = [new TableRow({
+      tableHeader: true,
+      children: ["Indicator and claim", "Level", "Quality", "Baseline", "Sources", "Gaps"].map((t, i) =>
+        cell(t, { bold: true, fill: DOCX_C.green, color: "FFFFFF", width: cw[i] })),
+    })];
+    r.claim_rows.forEach((row, idx) => {
+      const fill = idx % 2 === 1 ? DOCX_C.light : undefined;
+      const g = gapCount(row);
+      trows.push(new TableRow({ children: [
+        cell(row.name + (row.u.claim ? ` — “${row.u.claim}”` : ""), { fill, width: cw[0] }),
+        cell(row.u.level || "—", { fill, width: cw[1], bold: true, color: confColor[row.u.level] }),
+        cell(REF.QUALITY_SHORT[row.u.quality || ""], { fill, width: cw[2] }),
+        cell(row.u.baseline ? "✓" : SCORING.COMPARATIVE.test(row.u.claim || "") ? "missing" : "not needed", { fill, width: cw[3], color: row.u.baseline ? DOCX_C.green : SCORING.COMPARATIVE.test(row.u.claim || "") ? DOCX_C.red : DOCX_C.grey }),
+        cell(row.u.sources ? "✓" : "missing", { fill, width: cw[4], color: row.u.sources ? DOCX_C.green : DOCX_C.red }),
+        cell(g ? `${g} gap${g > 1 ? "s" : ""}` : "none", { fill, width: cw[5], bold: !!g, color: g ? DOCX_C.red : DOCX_C.green }),
+      ] }));
+    });
+    children.push(new Table({ rows: trows, width: { size: TABLE_TW, type: WidthType.DXA }, columnWidths: twips(cw), layout: TableLayoutType.FIXED }));
+    children.push(new Paragraph(""));
+  }
+  r.claim_rows.forEach(row => {
+    const u = row.u;
     const lvl = u.level || "unlabelled";
     children.push(new Paragraph({
       heading: HeadingLevel.HEADING_3,
-      children: [new TextRun(n), new TextRun({ text: `  [${lvl.toUpperCase()}]`, bold: true, color: confColor[lvl] || DOCX_C.grey })],
+      children: [new TextRun(row.name), new TextRun({ text: `  [${lvl.toUpperCase()}]`, bold: true, color: confColor[lvl] || DOCX_C.grey }),
+        new TextRun({ text: `  [QUALITY: ${REF.QUALITY_SHORT[u.quality || ""].toUpperCase()}]`, bold: true, color: DOCX_C.grey })],
     }));
     if (u.claim) children.push(labelled("Claim as stated: ", u.claim));
-    children.push(labelled("Assumptions & data sources: ", u.assumptions || "(not filled in)"));
+    children.push(labelled("Baseline: ", u.baseline || "(not stated)"));
+    children.push(labelled("Evidence and data sources: ", u.sources || "(not stated)"));
+    if (row.stage) children.push(labelled("Relies on pathway step: ", `${row.link}. Assumption: ${row.stage.assumption || "(none stated)"} (evidence: ${row.stage.evidence || "Not rated"})`));
+    children.push(labelled("Assumptions: ", u.assumptions || "(not filled in)"));
     children.push(labelled("Conditions that could change the estimate: ", u.conditions || "(not filled in)"));
+    row.gaps.forEach(g => children.push(bullet([new TextRun({ text: `${g.sev === "warning" ? "⚠ Gap: " : "ℹ "}${g.msg}`, color: g.sev === "warning" ? DOCX_C.red : DOCX_C.blue })])));
   });
 
   // Integrity checks

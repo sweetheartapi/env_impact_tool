@@ -40,10 +40,22 @@ Central Bohemian Innovation Centre (SIC):
   indicators must say what they measure. A new integrity check warns when
   no core indicator measures adoption or a real-world outcome, and the Word
   report's indicator tables gain a "Measures" column.
+- **Claims & evidence (step 4).** Measured / modelled / projected stays.
+  Evidence quality (low / medium / high) is a separate rating: a
+  self-reported survey is measured data of low quality. Each claim now has
+  a baseline ("compared with what?") and its evidence sources, and shows
+  the assumption of the pathway step it relies on (from step 2). A
+  claim–evidence check flags gaps: projected claims worded as fact,
+  comparisons without a baseline, measured claims of low quality, claims
+  without sources, and indicators that contradict a weak step-2 rating. A
+  "Claims and evidence at a glance" table sits at the top of step 4 and in
+  section 4 of the report; gaps also feed the integrity checks and next
+  steps. Word tables now keep their column widths.
 - Save files gain optional keys: `customer_types`, `revenue_models`,
   `customer_profile` (the buyer), `customer_user`, `behaviour_actor`,
   `value_drivers`, `customer_value`, `custom_kinds`, `change` on each pathway
-  stage and `kind` on each selected indicator.
+  stage, `kind` on each selected indicator, and `quality`, `baseline`,
+  `sources` on each claim.
   Older files load without them.
 
 

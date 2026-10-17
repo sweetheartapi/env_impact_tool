@@ -407,3 +407,23 @@ details.exp > .body { padding: 0 1rem 1rem; border-top: 1px solid var(--border);
 }
 .kind-select { max-width: 16rem; }
 .add-custom { flex-wrap: wrap; }
+
+/* claims & evidence (step 4) */
+.claim-overview { margin-bottom: 1.2rem; }
+.table-scroll { overflow-x: auto; }
+table.claims { width: 100%; border-collapse: collapse; font-size: .84rem; }
+table.claims th { text-align: left; font-size: .74rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: .4rem .5rem; border-bottom: 1.5px solid var(--border); }
+table.claims td { padding: .55rem .5rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+.claim-q { color: var(--muted); font-style: italic; margin-top: .15rem; }
+.claim-q.none { color: #9AA39D; }
+.lvl, .qual, .gap-n { display: inline-block; padding: .05rem .5rem; border-radius: 999px; font-size: .74rem; font-weight: 700; white-space: nowrap; }
+.lvl-Measured { background: #E3F1E7; color: #1E6A47; } .lvl-Modelled { background: #FBF1DC; color: #8A6508; } .lvl-Projected { background: #F1E8F5; color: #6B4380; }
+.q-high { background: #E3F1E7; color: #1E6A47; } .q-medium { background: #FBF1DC; color: #8A6508; } .q-low { background: #FBE6E4; color: #A23B3B; } .q-none { background: #EEF0EC; color: #7A857E; }
+.gap-n { background: #FBE6E4; color: #A23B3B; }
+table.claims .yes { color: #1E6A47; font-weight: 700; } table.claims .no { color: #A23B3B; font-size: .78rem; }
+.two-dim { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+@media (max-width: 900px) { .two-dim { grid-template-columns: minmax(0, 1fr); } }
+.link-box { background: #F4F7FA; border: 1px solid #D5E0EA; border-radius: .7rem; padding: .6rem .8rem; font-size: .86rem; margin: 0 0 .9rem; }
+.link-box.none { background: #fff; border-style: dashed; color: var(--muted); display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.gap-list { display: grid; gap: .1rem; }
+table.claims .na { color: #9AA39D; font-size: .78rem; }
