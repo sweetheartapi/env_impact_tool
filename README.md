@@ -1,4 +1,4 @@
-**Live app (GitHub Pages):** https://sweetheartapi.github.io/env_impact_tool/
+**Live app (GitHub Pages):** https://apiholec.github.io/env_impact_tool/
 
 # Startup Environmental Impact Assessment Tool (v3.3)
 
